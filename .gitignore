@@ -7,7 +7,6 @@ coverage/
 .npm-cache/
 test-artifacts/
 output/
-screenshots.json
 native/*
 !native/patches.mjs
 !native/git-graph-compat.mjs
