@@ -4,9 +4,9 @@
 
 为 DeepSeek Harness 提供类似 Codex 的无项目会话体验：先写消息，首次发送时再创建按日期和主题组织的工作目录。
 
-DSH Codexlike Projectless 以独立插件身份和版本体系维护，方向是在 DeepSeek Harness 内实现受 Codex 启发的会话工作流。仓库名和内部插件名统一为 `dsh-codexlike-projectless`。源码来源和 MIT 许可说明见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不是 DeepSeek 或 OpenAI 官方项目。
+DSH Codexlike Projectless 独立维护，采用自己的版本编号。仓库名和内部插件名均为 `dsh-codexlike-projectless`。源码来源和 MIT 许可说明见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不是 DeepSeek 或 OpenAI 官方项目。
 
-当前版本 `0.1.0`，适配 **Windows 上的 DSH Desktop 0.2.0-rc.2**。本项目从 `0.1.0` 开始独立版本编号。这版同时包含插件和 DSH 原生接入补丁；只安装插件包不能启用完整流程。发布源码与补丁生成脚本，不分发 DSH 的 `app.asar`、用户 profile 或本机备份。
+当前版本 `0.1.1`，适配 **Windows 上的 DSH Desktop 0.2.0-rc.2**。独立版本编号从 `0.1.0` 开始。完整流程需要插件和 DSH 原生接入补丁；只安装插件包不能启用完整流程。发布插件包、Windows 安装包和源码，不分发 DSH 的 `app.asar`、用户 profile 或本机备份。
 
 1. 新建无项目会话时打开浏览器草稿，立即使用原生输入框。此时不创建真实 Session、Workspace 或工作目录。
 2. 首次发送时调用 DSH 自带主题生成服务，用当前模型生成主题；服务失败时使用 DSH 原生回退主题。
@@ -46,60 +46,70 @@ DSH Codexlike Projectless 以独立插件身份和版本体系维护，方向是
 
 ## 安装与恢复
 
-安装前完全退出 DSH。安装器检查原版或本地备份记录中的已安装版本，以及新补丁 SHA-256，并备份当前 archive、已安装插件以及 profile 配置。更新失败恢复本次更新前的版本。仅改动插件相关依赖和文件，保留原有工作目录设置。
+需要 Windows、已安装的 DSH Desktop 0.2.0-rc.2，以及 Node.js 22.19 或更新版本。使用 Release 安装包时，无需安装 npm 依赖、编译源码或手动生成补丁。安装器同时处理首次安装和更新。
 
-需要 Node.js 22.19 或更新版本、npm，以及已安装的 DSH Desktop 0.2.0-rc.2。当前安装器用于更新已有的 `dsh-codexlike-projectless` 插件：目标 profile 必须已有该插件目录、依赖和配置项。首次使用应先生成本项目的 `dsh-codexlike-projectless-0.1.0.tgz`，通过 DSH 插件管理安装该本地包，再完全退出 DSH 并运行原生补丁安装器。无需安装上游插件。迁移前请禁用旧的 `dsh-projectless-session`，避免同时接管会话；本项目使用独立设置文件和浏览器状态键，旧配置不会自动迁移，已有会话和工作目录仍保留。
+### 直接安装（推荐）
 
-下载本仓库源码或克隆后，在源码目录执行：
+1. 从 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) 下载 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`，解压到本机目录。不要直接在压缩包中运行。
+2. 完全退出 DSH，包括托盘中的后台进程。如果安装了旧插件 `dsh-projectless-session`，先在 DSH 中禁用它。
+3. 双击解压目录中的 `Install.cmd`。安装器会查找 DSH 安装目录；找不到或找到多个位置时，输入实际目录。
+4. 看到“Installed / 已安装”后重新打开 DSH，在“设置 → 通用 → 无项目会话”中选择工作区根目录并保存。
 
-```powershell
-npm ci
-npm run verify
-npm pack --ignore-scripts
-node scripts/prepare-native.mjs '原版备份/app.asar'
-node scripts/prepare-sidebar-compat.mjs
-node scripts/prepare-git-graph-compat.mjs
-.\scripts\install-native.ps1
-```
-
-`prepare-native.mjs` 的第一个参数是未经修改的 DSH `app.asar` 路径；首次安装可传入实际安装位置的 `resources/app.asar`。默认安装路径为 `E:\DeepSeekHarness`，安装到其他位置时使用 `install-native.ps1 -AppDirectory '实际安装目录'`；profile 可通过 `-ProfileDirectory` 指定。
-
-只有安装了 `dsh-better-sidebar` 或 Git Graph 0.4.4 时才运行对应的 `prepare-*-compat.mjs`。侧栏准备脚本使用当前用户的默认 desktop profile；Git Graph 脚本可接收 profile 路径。暂存补丁必须与安装器目标 profile 一致。原生补丁准备完成后，首次安装前创建空的 `native/backups` 目录（`New-Item -ItemType Directory -Force native/backups`）。安装成功后保留源码目录、插件包和备份，以便恢复。
-
-按需准备已安装第三方插件的兼容补丁，然后执行安装：
+默认操作 `%USERPROFILE%\.dsh\profiles\desktop`。使用其他 profile 或需要明确指定安装位置时，在解压目录打开 PowerShell，运行：
 
 ```powershell
-# 仅安装了 dsh-better-sidebar 时执行
-node scripts/prepare-sidebar-compat.mjs
-# 仅安装了 Git Graph 0.4.4 时执行
-node scripts/prepare-git-graph-compat.mjs
-.\scripts\install-native.ps1
+.\install.ps1 -AppDirectory 'E:\DeepSeekHarness' -ProfileDirectory 'C:\Users\你的用户名\.dsh\profiles\desktop'
 ```
 
-原生补丁是版本限定接入，DSH 更新后需要重新适配；安装器拒绝覆盖未验证的 archive。
+安装器在本机读取 DSH 原版 archive、检查版本和补丁锚点、生成原生补丁，并自动处理目标 profile 中已安装的 `dsh-better-sidebar` 与 Git Graph 0.4.4。兼容文件无法识别或 Git Graph 版本不支持时，安装停止，不写入应用或 profile。首次安装也会创建插件依赖和配置项；已有的工作目录设置及其他插件配置保留。
 
-当前机器的增强侧栏另外有一处草稿 cwd 查询兼容判断，也纳入备份。首次安装到未修改原版时可直接运行 `node scripts/prepare-native.mjs`；已安装补丁后重新生成必须指定原版备份。安装器支持从其本地备份记录可验证的旧补丁版本更新，拒绝覆盖未知修改。
+插件副本、原版 archive 和恢复工具保存在目标 profile 下的 `dsh-codexlike-projectless-installer` 目录。安装成功后可以删除下载的 ZIP 和解压目录；不要删除这个安装器目录，它供后续更新和恢复使用。安装器将插件依赖登记为指向该目录的本地 `link:` 依赖，不依赖下载目录。更新时下载新版安装 ZIP，退出 DSH，再运行相同入口。
 
-恢复原版前完全退出 DSH，然后执行：
+### 通过插件市场导入本地包
+
+本插件目前尚未上传插件市场，也未发布到 npm，因此不能通过市场搜索直接安装。支持本地包导入的插件市场或插件管理界面可以安装 Release 中的 `.tgz`：
+
+1. 从同一版本的 Release 下载 `dsh-codexlike-projectless-0.1.1.tgz` 和 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`。
+2. 打开 DSH 的插件市场或插件管理页面，进入本地包导入入口，选择下载的 `.tgz`，完成安装。各客户端的入口名称可能不同。确认操作的是实际使用的 desktop profile；自定义 profile 后续也要传给安装器。
+3. 禁用旧的 `dsh-projectless-session`（如有），然后完全退出 DSH。
+4. 解压同版本的安装 ZIP，双击 `Install.cmd`，完成原生补丁安装，再重新打开 DSH。
+
+市场导入只安装插件包，原生补丁仍需第 4 步。不要把安装 ZIP 当作插件包导入。统一安装器也支持直接安装，因此市场导入不是必需的前置步骤。
+
+### 从旧安装流程更新
+
+旧流程的备份位于源码目录的 `native/backups`。更新旧补丁时，除了新版安装 ZIP，还需让安装器找到这些备份：
 
 ```powershell
-.\scripts\restore-native.ps1 -BackupDirectory '本次安装输出的备份目录'
+.\install.ps1 -AppDirectory 'E:\DeepSeekHarness' -LegacyBackupDirectory '旧源码目录\native\backups'
 ```
 
-在“设置”的通用页面中找到“无项目会话”，填写“工作区根目录”或点击“浏览…”选择目录，再点击“保存”。界面显示当前生效路径；验证或保存失败时保持原值。设置保存在 `DSH_HOME/storages/dsh-codexlike-projectless-settings.json`，重启后继续生效，不改写其他 profile 设置。
+安装器通过备份记录与 SHA-256 检查当前 archive，并寻找可验证的原版备份。找不到时停止安装，不直接覆盖未知补丁。可以用 `-OriginalArchive '原版备份\app.asar'` 明确指定原版，但仍需匹配当前安装的备份记录。原生补丁限定 DSH 0.2.0-rc.2；DSH 更新后需要重新适配。
+
+### 恢复安装前状态
+
+安装器会输出备份目录和完整恢复命令。安装失败时自动恢复本次操作前的应用、插件和 profile；首次安装失败也会移除本次新增的插件注册。手动恢复前完全退出 DSH，然后执行输出的命令，例如：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\你的用户名\.dsh\profiles\desktop\dsh-codexlike-projectless-installer\install.ps1' -Restore -BackupDirectory '安装器输出的备份目录'
+```
+
+恢复的是所选备份时的 profile 配置，包括当时的其他插件配置；之后对这些配置的修改会被还原。恢复不会删除会话历史、工作目录或独立的工作区根目录设置。直接在市场卸载 `.tgz` 不会移除原生补丁，应使用恢复命令。若市场导入发生在安装器运行之前，恢复后仍会保留导入的插件，此时可再从市场卸载它。旧版备份继续使用旧源码中的 `scripts/restore-native.ps1`。
+
+### 设置工作目录
+
+在“设置 → 通用 → 无项目会话”中填写“工作区根目录”，或点击“浏览…”选择目录，再点击“保存”。界面显示当前生效路径；验证或保存失败时保持原值。设置保存在 `DSH_HOME/storages/dsh-codexlike-projectless-settings.json`，重启后继续生效，不改写其他 profile 设置。
 
 未保存覆盖值时，根目录沿用 profile 的 `dsh-codexlike-projectless.config.root`；未配置则使用 `~/Documents/DSH`。修改只影响之后首次发送的新会话，既有会话和目录不迁移。一次首次发送固定使用开始发送时的根目录，回收也按原分配目录处理。`debug: true` 会开启诊断日志，只记录状态和路径，不记录输入正文或密钥。
 
 ## 验证和使用边界
 
-本次独立构建检查见 [0.1.0 初版验证](docs/独立初版验证.md)。
+`0.1.1` 的安装器集成测试覆盖首次安装、更新、配置保留和失败回滚，使用合成 ASAR 与 DSH 0.2.0-rc.2 的实际模块代码；这些测试不能代替真实 Desktop 安装与重启验收。`0.1.0` 构建检查见 [初版验证](docs/独立初版验证.md)。
 
 历史功能验证见 [本地完整版测试](docs/本地完整版测试.md)。其中版本号、日志和截图对应改名前的开发构建，不代表 `0.1.0` 已完成安装与重启验收。草稿期支持选择模型、预设、权限、规划模式和添加附件。需要真实会话或执行目录的工具、任务与命令在首次消息创建真实会话之后使用。草稿只在运行期内存中，刷新、关闭或重启不保留正文和附件。原生补丁更新后必须重启 DSH；插件热替换不作为本地安装验收方式。
 
-The local full-flow build requires the supplied native bridge for DSH Desktop 0.2.0-rc.2. It retains the native composer, prepares a title before allocating a real Session, stores each conversation under `ROOT/YYYY-MM-DD/title`, and removes only the temporary Workspace registration after admission. Installation is reversible and version/hash guarded. See the Chinese validation document for evidence and limitations.
-
 ## 发布与开发
 
-源码与版本下载见 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases)。本项目的发布流程仅创建 GitHub Release，使用独立包名，当前不发布到 npm。完整安装请使用源码中的原生补丁生成和安装脚本；Release 中的 `.tgz` 是插件包。
+源码与版本下载见 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases)。发布流程创建 GitHub Release，提供 `.tgz` 插件包、`-windows-installer.zip` 完整安装包和 `SHA256SUMS` 校验文件，当前不发布到 npm。源码构建流程见 CONTRIBUTING.md。
 
 开发与验证流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本记录见 [CHANGELOG.md](CHANGELOG.md)。本机历史测试记录中的日志、截图和备份路径用于说明当时的验证范围，除上述精选运行截图外，这些运行产物不包含在公开仓库中。后续检查与优化通过本仓库的 Issues 和版本更新跟进。
