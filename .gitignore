@@ -1,0 +1,13 @@
+node_modules/
+coverage/
+.playwright-cli/
+*.tgz
+.DS_Store
+*.log
+.npm-cache/
+test-artifacts/
+output/
+screenshots.json
+native/*
+!native/patches.mjs
+!native/git-graph-compat.mjs
