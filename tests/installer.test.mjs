@@ -195,7 +195,7 @@ test('Git Graph 0.4.4 preparation is idempotent across installer updates', t => 
 test('PowerShell launcher installs a bundled release and restores after downloads are removed', { skip: process.platform !== 'win32' || !existsSync(resolve('output/dsh-codexlike-projectless-0.1.1-windows-installer')) }, t => {
   const f = fixture(t)
   const release = resolve('output/dsh-codexlike-projectless-0.1.1-windows-installer')
-  cpSync(release, f.bundle, { recursive: true })
+  cpSync(release, f.bundle, { recursive: true, filter: () => true })
   const launch = (file, args) => {
     const result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', file, ...args], { encoding: 'utf8' })
     assert.equal(result.status, 0, result.stdout + result.stderr)

@@ -9,7 +9,7 @@ const name = `${pkg.name}-${pkg.version}-windows-installer`
 const directory = resolve('output', name)
 rmSync(directory, { recursive: true, force: true })
 mkdirSync(join(directory, 'payload'), { recursive: true })
-for (const path of ['package.json', ...pkg.files]) cpSync(path, join(directory, 'payload', path), { recursive: true })
+for (const path of ['package.json', ...pkg.files]) cpSync(path, join(directory, 'payload', path), { recursive: true, filter: () => true })
 for (const path of ['install.ps1', 'Install.cmd']) {
   const text = readFileSync(join('scripts/installer', path), 'utf8').replaceAll('\n', '\r\n')
   writeFileSync(join(directory, path), (path.endsWith('.ps1') ? '\uFEFF' : '') + text)

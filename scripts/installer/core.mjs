@@ -12,6 +12,9 @@ export const TARGET = '0.2.0-rc.2'
 const hash = data => createHash('sha256').update(data).digest('hex')
 const json = path => JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/, ''))
 const sha = path => hash(readFileSync(path))
+// Avoid Node's native recursive copy fast path: on Windows, path/permission
+// errors can terminate the process instead of throwing (nodejs/node#63970).
+// Every recursive cpSync below uses a filter to retain catchable rollback errors.
 const present = path => { try { lstatSync(path); return true } catch (e) { if (e.code === 'ENOENT') return false; throw e } }
 function atomicWrite(path, data) {
   const temp = path + '.' + randomUUID() + '.tmp'
@@ -145,19 +148,19 @@ export function install({ bundle, app, profile, state = join(profile, PLUGIN + '
     })
     const pluginExists = present(plugin)
     const pluginLink = pluginExists && lstatSync(plugin).isSymbolicLink() ? readlinkSync(plugin) : null
-    if (pluginExists) cpSync(plugin, join(backup, 'plugin'), { recursive: true, dereference: true })
+    if (pluginExists) cpSync(plugin, join(backup, 'plugin'), { recursive: true, dereference: true, filter: () => true })
     const record = { schema: 2, pluginName: PLUGIN, appDirectory: app, profileDirectory: profile, originalSha256: currentHash, upstreamSha256: sha(upstream), upstreamArchive, installedSha256: hash(patched), files, pluginExists, pluginLink, pluginHashes: pluginExists ? fileHashes(join(backup, 'plugin')) : {} }
     writeFileSync(join(backup, 'restore.json'), JSON.stringify(record, null, 2) + '\n')
     checkpoint('backed-up')
     try {
-      if (!existsSync(packageDir)) cpSync(join(bundle, 'payload'), packageDir, { recursive: true })
+      if (!existsSync(packageDir)) cpSync(join(bundle, 'payload'), packageDir, { recursive: true, filter: () => true })
       for (const [path, expected] of Object.entries(manifest.files)) {
         if (path.startsWith('payload/') && sha(join(packageDir, path.slice(8))) !== expected) throw new Error('Stored plugin checksum failed: ' + path)
       }
       // Replace the top-level pnpm link, never write through it into its store.
       rmSync(plugin, { recursive: true, force: true })
       mkdirSync(dirname(plugin), { recursive: true })
-      cpSync(packageDir, plugin, { recursive: true })
+      cpSync(packageDir, plugin, { recursive: true, filter: () => true })
       checkpoint('plugin')
       atomicWrite(profilePackage, changedProfile.package)
       atomicWrite(profileConfig, changedProfile.config)
@@ -202,7 +205,7 @@ export function restore(backup, { locked = false } = {}) {
     rmSync(plugin, { recursive: true, force: true })
     if (record.pluginExists) {
       if (record.pluginLink) symlinkSync(record.pluginLink, plugin, process.platform === 'win32' ? 'junction' : 'dir')
-      else cpSync(join(backup, 'plugin'), plugin, { recursive: true })
+      else cpSync(join(backup, 'plugin'), plugin, { recursive: true, filter: () => true })
     }
     return { backup }
   } finally { if (!locked) rmSync(lockPath, { force: true }) }
