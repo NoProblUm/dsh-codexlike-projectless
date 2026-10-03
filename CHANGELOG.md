@@ -1,25 +1,27 @@
 # Changelog / 变更日志
 
-This log starts with the first independent release of `dsh-noproject-codexlike`. Earlier development versions and the original project's release history are not included.
+Independent release history for DSH Codexlike Projectless. Historical development validation is retained separately and does not define this project's versions.
 
-本日志从 `dsh-noproject-codexlike` 首次独立发布开始记录，不包含发布前的开发版本和原项目的版本历史。
+本日志记录 DSH Codexlike Projectless 的独立版本；历史开发验证记录单独保留。
 
-## 0.7.0-local.5 - 2026-10-03
+## 0.1.0 - 2026-10-03
 
 ### English
 
-- First independent prerelease for DSH Desktop 0.2.0-rc.2 on Windows; retain the tested plugin version and internal package name for compatibility.
-- Start no-project conversations as drafts and create a working directory organized by date and topic on the first send.
-- Switch between project and no-project drafts, preserve their text and attachments, and retain the default project selection across restarts.
-- Configure the no-project workspace root and keep completed conversations under Ungrouped with their working directories and history.
-- Provide the plugin source, native bridge patches and installation scripts, with bilingual READMEs and real screenshots using example projects and conversations.
-- Distribute the plugin package through GitHub Releases.
+- Initial independent release with repository, package and plugin identity `dsh-codexlike-projectless`.
+- Provide a Codex-inspired projectless conversation workflow using DSH's native composer and send path.
+- Create working directories by date and topic on first send; retain conversations under Ungrouped.
+- Restore each project's in-memory draft when switching, and retain the default project selection across restarts.
+- Configure a workspace root using independent settings and browser state namespaces.
+- Include version-guarded native patches, reversible installation scripts and bilingual documentation.
+- Retain upstream MIT source attribution in NOTICE and LICENSE.
 
 ### 简体中文
 
-- 首次独立预发布，适配 Windows 上的 DSH Desktop 0.2.0-rc.2；保留已测试的插件版本号和内部包名以保证兼容性。
-- 无项目会话先作为草稿打开，首次发送时再按日期和主题创建工作目录。
-- 支持项目与无项目草稿切换，保留各自的文本和附件，并在重启后保留默认项目选择。
-- 支持设置无项目工作区根目录，已创建的无项目会话归入“未分组”，保留工作目录和历史记录。
-- 提供插件源码、原生接入补丁及安装脚本，附中英文 README 和使用示例项目、会话拍摄的真实运行截图。
-- 通过 GitHub Releases 提供插件包。
+- 独立初版，仓库、包名与插件身份统一为 `dsh-codexlike-projectless`。
+- 使用 DSH 原生输入框和发送链路，提供受 Codex 启发的无项目会话工作流。
+- 首次发送时按日期和主题创建工作目录，会话保留在“未分组”。
+- 切换项目时恢复各自运行期草稿，默认项目选择跨重启保留。
+- 工作区根目录设置与浏览器状态采用独立命名空间。
+- 提供版本校验的原生补丁、可恢复安装脚本及中英文文档。
+- 在 NOTICE 和 LICENSE 中保留上游 MIT 源码归属。

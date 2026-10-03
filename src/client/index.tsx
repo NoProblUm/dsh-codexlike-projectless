@@ -42,23 +42,23 @@ import { diagnosticErrorCode, type DiagnosticSink } from '../shared/diagnostics.
 import { installProjectlessDrafts } from './draft.ts'
 import { ProjectlessSettings } from './settings.tsx'
 
-const PACKAGE_ID = 'dsh-projectless-session'
+const PACKAGE_ID = 'dsh-codexlike-projectless'
 export { createAndSendProjectlessSession } from './first-prompt.ts'
 export type { FirstPromptServices, PromptAcceptance } from './first-prompt.ts'
 const PROJECTLESS = PROJECTLESS_ENTRY_ID
 const ADD_WORKSPACE = '::add-workspace'
 const DSH_DIRECTORY_FLOW = 'conversation.hero.workspace.directoryFlow'
-const DIRECTORY_FLOW = 'dsh-projectless-session.directoryFlow'
+const DIRECTORY_FLOW = 'dsh-codexlike-projectless.directoryFlow'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** This picker's own directory-flow hole, mirrored from DSH's hero hole. */
-    'dsh-projectless-session.directoryFlow': {
+    'dsh-codexlike-projectless.directoryFlow': {
       kind: 'single'
       scope: 'root'
       owner: DirectoryFlowOwnerProps
     }
-    'projectless.entry': { kind: 'single', scope: 'root', owner: { children?: never } }
+    'dsh-codexlike-projectless.entry': { kind: 'single', scope: 'root', owner: { children?: never } }
   }
 }
 
@@ -213,7 +213,7 @@ function ProjectlessWorkspacePicker({
           </Button>
         )}
       >
-        <div className="dsh-projectless-session-error" role="alert">{modalError}</div>
+        <div className="dsh-codexlike-projectless-error" role="alert">{modalError}</div>
       </Modal>
     </>
   )
@@ -266,7 +266,7 @@ function installStyles(): () => void {
     .dsh-projectless-settings input { flex: 1; min-width: 0; padding: 8px; color: inherit;
       background: transparent; border: 1px solid var(--dsw-alias-border-primary, #888); border-radius: 6px; }
     .dsh-projectless-settings small { overflow-wrap: anywhere; }
-    .dsh-projectless-session-error {
+    .dsh-codexlike-projectless-error {
       margin-top: 8px;
       color: var(--dsw-alias-state-error-primary);
       font-size: 12px;
@@ -401,13 +401,13 @@ export function apply(ctx: Context): void {
   const drafts = installProjectlessDrafts(ctx, host, pendingWorkspaceIds, diagnostics, onError)
   ctx.on('projectless/is-session', drafts.isProjectlessSession)
   ctx.on('projectless/label', () => ctx.locale.bind(PROJECTLESS_LOCALE_NS)('picker.projectless'))
-  ctx.slots.inject('projectless.entry', () => ctx.slots.register({
-    name: 'projectless.entry',
+  ctx.slots.inject('dsh-codexlike-projectless.entry', () => ctx.slots.register({
+    name: 'dsh-codexlike-projectless.entry',
     locale: PROJECTLESS_LOCALE_NS,
     inject: () => ({ start: () => { void drafts.start().catch(onError) } }),
   }, ProjectlessEntry))
   ctx.effect(() => (ctx.slots.register.bind(ctx.slots) as unknown as LooseRegister)({
-    name: 'settings.general.item', id: 'projectless-session', order: 0,
+    name: 'settings.general.item', id: 'dsh-codexlike-projectless', order: 0,
     locale: PROJECTLESS_LOCALE_NS,
     inject: () => ({ rpc, browse: () => ctx.uiWorkspace.pickDirectory() }),
   }, ProjectlessSettings), `${PACKAGE_ID}: root settings`)

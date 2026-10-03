@@ -5,7 +5,7 @@
  * channel as exact Fetch routes instead.
  */
 export const PROJECTLESS_RPC_CHANNEL = '/api'
-export const PROJECTLESS_RPC_PREFIX = 'projectless-session'
+export const PROJECTLESS_RPC_PREFIX = 'dsh-codexlike-projectless'
 export const PROJECTLESS_ENDPOINTS = ['create-directory', 'get-root', 'remove-directory', 'log-event', 'prepare-title', 'bind-title', 'save-root'] as const
 export type ProjectlessEndpoint = typeof PROJECTLESS_ENDPOINTS[number]
 

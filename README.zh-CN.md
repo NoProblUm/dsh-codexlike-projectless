@@ -1,12 +1,12 @@
-# dsh-noproject-codexlike
+# dsh-codexlike-projectless
 
 [English](README.md) | **简体中文**
 
 为 DeepSeek Harness 提供类似 Codex 的无项目会话体验：先写消息，首次发送时再创建按日期和主题组织的工作目录。
 
-本项目由 [jarvisluk/dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session) 的 MIT 源码发展而来，以独立仓库维护，不是 DeepSeek 或 OpenAI 官方项目。保留上游作者署名和 MIT 许可。仓库名为 `dsh-noproject-codexlike`，内部插件名仍为 `dsh-projectless-session`。
+DSH Codexlike Projectless 以独立插件身份和版本体系维护，方向是在 DeepSeek Harness 内实现受 Codex 启发的会话工作流。仓库名和内部插件名统一为 `dsh-codexlike-projectless`。源码来源和 MIT 许可说明见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不是 DeepSeek 或 OpenAI 官方项目。
 
-当前版本 `0.7.0-local.5`，适配 **Windows 上的 DSH Desktop 0.2.0-rc.2**。首次独立发布保留已测试的版本号，作为预发布版本提供。这版同时包含插件和 DSH 原生接入补丁；只安装插件包不能启用完整流程。发布源码与补丁生成脚本，不分发 DSH 的 `app.asar`、用户 profile 或本机备份。
+当前版本 `0.1.0`，适配 **Windows 上的 DSH Desktop 0.2.0-rc.2**。本项目从 `0.1.0` 开始独立版本编号。这版同时包含插件和 DSH 原生接入补丁；只安装插件包不能启用完整流程。发布源码与补丁生成脚本，不分发 DSH 的 `app.asar`、用户 profile 或本机备份。
 
 1. 新建无项目会话时打开浏览器草稿，立即使用原生输入框。此时不创建真实 Session、Workspace 或工作目录。
 2. 首次发送时调用 DSH 自带主题生成服务，用当前模型生成主题；服务失败时使用 DSH 原生回退主题。
@@ -24,7 +24,7 @@
 
 ## 运行截图
 
-以下图片于 2026-10-03 在 Windows 上实际运行的 DSH Desktop 0.2.0-rc.2 隔离环境中拍摄，插件版本为 0.7.0-local.5。仅加载 DSH 内置组件和本插件，使用原生界面，没有主题、宠物或增强侧栏插件。三个示例项目、六条项目内会话和一条未分组会话均为专门创建的演示数据，不含个人会话历史；它们用于展示项目归属，不代表模型执行结果。原图未修改。
+以下图片于 2026-10-03 在 Windows 上实际运行的 DSH Desktop 0.2.0-rc.2 隔离环境中拍摄，插件版本为改名前开发构建 0.7.0-local.5。仅加载 DSH 内置组件和本插件，使用原生界面，没有主题、宠物或增强侧栏插件。三个示例项目、六条项目内会话和一条未分组会话均为专门创建的演示数据，不含个人会话历史；它们用于展示项目归属，不代表模型执行结果。原图未修改。
 
 ### 无项目草稿与项目会话对比
 
@@ -48,7 +48,7 @@
 
 安装前完全退出 DSH。安装器检查原版或本地备份记录中的已安装版本，以及新补丁 SHA-256，并备份当前 archive、已安装插件以及 profile 配置。更新失败恢复本次更新前的版本。仅改动插件相关依赖和文件，保留原有工作目录设置。
 
-需要 Node.js 22.19 或更新版本、npm，以及已安装的 DSH Desktop 0.2.0-rc.2。当前安装器用于更新已有的 `dsh-projectless-session` 插件：目标 profile 必须已有该插件目录、依赖和配置项。首次使用应先按照 DSH 的插件管理方式安装上游插件，退出 DSH 后再安装本项目的完整版本；请勿把上游插件单独安装成功当作本项目完整功能安装完成。
+需要 Node.js 22.19 或更新版本、npm，以及已安装的 DSH Desktop 0.2.0-rc.2。当前安装器用于更新已有的 `dsh-codexlike-projectless` 插件：目标 profile 必须已有该插件目录、依赖和配置项。首次使用应先生成本项目的 `dsh-codexlike-projectless-0.1.0.tgz`，通过 DSH 插件管理安装该本地包，再完全退出 DSH 并运行原生补丁安装器。无需安装上游插件。迁移前请禁用旧的 `dsh-projectless-session`，避免同时接管会话；本项目使用独立设置文件和浏览器状态键，旧配置不会自动迁移，已有会话和工作目录仍保留。
 
 下载本仓库源码或克隆后，在源码目录执行：
 
@@ -86,18 +86,20 @@ node scripts/prepare-git-graph-compat.mjs
 .\scripts\restore-native.ps1 -BackupDirectory '本次安装输出的备份目录'
 ```
 
-在“设置”的通用页面中找到“无项目会话”，填写“工作区根目录”或点击“浏览…”选择目录，再点击“保存”。界面显示当前生效路径；验证或保存失败时保持原值。设置保存在 `DSH_HOME/storages/projectless-session-settings.json`，重启后继续生效，不改写其他 profile 设置。
+在“设置”的通用页面中找到“无项目会话”，填写“工作区根目录”或点击“浏览…”选择目录，再点击“保存”。界面显示当前生效路径；验证或保存失败时保持原值。设置保存在 `DSH_HOME/storages/dsh-codexlike-projectless-settings.json`，重启后继续生效，不改写其他 profile 设置。
 
-未保存覆盖值时，根目录沿用 profile 的 `dsh-projectless-session.config.root`；未配置则使用 `~/Documents/DSH`。修改只影响之后首次发送的新会话，既有会话和目录不迁移。一次首次发送固定使用开始发送时的根目录，回收也按原分配目录处理。`debug: true` 会开启诊断日志，只记录状态和路径，不记录输入正文或密钥。
+未保存覆盖值时，根目录沿用 profile 的 `dsh-codexlike-projectless.config.root`；未配置则使用 `~/Documents/DSH`。修改只影响之后首次发送的新会话，既有会话和目录不迁移。一次首次发送固定使用开始发送时的根目录，回收也按原分配目录处理。`debug: true` 会开启诊断日志，只记录状态和路径，不记录输入正文或密钥。
 
 ## 验证和使用边界
 
-详见 [本地完整版测试](docs/本地完整版测试.md)。草稿期支持选择模型、预设、权限、规划模式和添加附件。需要真实会话或执行目录的工具、任务与命令在首次消息创建真实会话之后使用。草稿只在运行期内存中，刷新、关闭或重启不保留正文和附件。原生补丁更新后必须重启 DSH；插件热替换不作为本地安装验收方式。
+本次独立构建检查见 [0.1.0 初版验证](docs/独立初版验证.md)。
+
+历史功能验证见 [本地完整版测试](docs/本地完整版测试.md)。其中版本号、日志和截图对应改名前的开发构建，不代表 `0.1.0` 已完成安装与重启验收。草稿期支持选择模型、预设、权限、规划模式和添加附件。需要真实会话或执行目录的工具、任务与命令在首次消息创建真实会话之后使用。草稿只在运行期内存中，刷新、关闭或重启不保留正文和附件。原生补丁更新后必须重启 DSH；插件热替换不作为本地安装验收方式。
 
 The local full-flow build requires the supplied native bridge for DSH Desktop 0.2.0-rc.2. It retains the native composer, prepares a title before allocating a real Session, stores each conversation under `ROOT/YYYY-MM-DD/title`, and removes only the temporary Workspace registration after admission. Installation is reversible and version/hash guarded. See the Chinese validation document for evidence and limitations.
 
 ## 发布与开发
 
-源码与版本下载见 [GitHub Releases](https://github.com/NoProblUm/dsh-noproject-codexlike/releases)。本项目的发布流程仅创建 GitHub Release，不发布到上游 npm 包。完整安装请使用源码中的原生补丁生成和安装脚本；Release 中的 `.tgz` 是插件包。
+源码与版本下载见 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases)。本项目的发布流程仅创建 GitHub Release，使用独立包名，当前不发布到 npm。完整安装请使用源码中的原生补丁生成和安装脚本；Release 中的 `.tgz` 是插件包。
 
 开发与验证流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，版本记录见 [CHANGELOG.md](CHANGELOG.md)。本机历史测试记录中的日志、截图和备份路径用于说明当时的验证范围，除上述精选运行截图外，这些运行产物不包含在公开仓库中。后续检查与优化通过本仓库的 Issues 和版本更新跟进。

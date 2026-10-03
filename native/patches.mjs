@@ -68,13 +68,13 @@ export function patchConversation(source) {
   const chip = source.slice(chipStart, chipEnd).trim().replace(/,$/, '')
   source = replace(source, source.slice(chipStart, chipEnd), `(0, react_jsx_runtime.jsxs)("span", {
     className: "dsh-projectless-chip-group",
-    children: [${chip}, !projectless && chipTitle !== undefined && renderSlot("projectless.entry", {})]
+    children: [${chip}, !projectless && chipTitle !== undefined && renderSlot("dsh-codexlike-projectless.entry", {})]
   }),\n`)
   for (const icon of ['IconFolderCloseRegular', 'IconFolderOpenRegular']) {
     const anchor = `_deepseek_ai_dsh_client_ui_primitives.${icon}, {\n\t\t\t\t\t\tclassName: HeroShell_module_css_default.folder,`
     source = replace(source, anchor, anchor.replace('HeroShell_module_css_default.folder,', 'HeroShell_module_css_default.folder + " dsh-projectless-folder",'))
   }
-  source = replace(source, '"conversation.hero.workspace": {', `"projectless.entry": { kind: "single", scope: "root" },
+  source = replace(source, '"conversation.hero.workspace": {', `"dsh-codexlike-projectless.entry": { kind: "single", scope: "root" },
     "conversation.hero.workspace": {`)
   source = replace(source, 'hero && heroWorkspaceRow,', 'heroWorkspaceRow,')
   source = replace(source, 'sink(session, text, attachmentIds, mode, signal) {', `sink(session, text, attachmentIds, mode, signal) {

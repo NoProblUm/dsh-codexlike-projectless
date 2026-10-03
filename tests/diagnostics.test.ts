@@ -9,7 +9,7 @@ import { diagnosticPayload } from '../src/shared/diagnostics.ts'
 test('writes ordered JSONL diagnostics and flushes them for test inspection', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dsh-log-'))
   try {
-    const file = join(root, '.projectless-session.log')
+    const file = join(root, '.dsh-codexlike-projectless.log')
     const logger = createDiagnosticLogger(file, true)
     logger.emit('directory.created', { path: '/workspace/topic' })
     logger.emit('workspace.registered', { workspaceId: 'workspace-1' })

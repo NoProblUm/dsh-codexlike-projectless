@@ -1,24 +1,24 @@
 {
-  "name": "dsh-projectless-session",
-  "version": "0.7.0-local.5",
-  "description": "DeepSeek Harness Web plugin for date-organized projectless sessions under Documents/DSH",
+  "name": "dsh-codexlike-projectless",
+  "version": "0.1.0",
+  "description": "Codex-like projectless chats for DeepSeek Harness, with working directories created by date and topic on first send.",
   "keywords": [
     "deepseek",
     "deepseek-harness",
     "dsh",
     "cordis",
     "plugin",
-    "projectless-session"
+    "codexlike-projectless"
   ],
-  "author": "Jarvis Luk <lu_junrong@outlook.com>",
+  "author": "NoProblUm",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NoProblUm/dsh-noproject-codexlike.git"
+    "url": "git+https://github.com/NoProblUm/dsh-codexlike-projectless.git"
   },
   "bugs": {
-    "url": "https://github.com/NoProblUm/dsh-noproject-codexlike/issues"
+    "url": "https://github.com/NoProblUm/dsh-codexlike-projectless/issues"
   },
-  "homepage": "https://github.com/NoProblUm/dsh-noproject-codexlike#readme",
+  "homepage": "https://github.com/NoProblUm/dsh-codexlike-projectless#readme",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -52,9 +52,11 @@
     "cordis.patch.yml",
     "CHANGELOG.md",
     "README.md",
-    "docs/第一版测试说明.md",
     "LICENSE",
-    "docs/本地完整版测试.md"
+    "docs/本地完整版测试.md",
+    "README.zh-CN.md",
+    "NOTICE",
+    "docs/独立初版验证.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -142,5 +144,8 @@
     "access": "public"
   },
   "packageManager": "npm@10.9.8",
-  "license": "MIT"
+  "license": "MIT",
+  "contributors": [
+    "Jarvis Luk <lu_junrong@outlook.com> (upstream source)"
+  ]
 }

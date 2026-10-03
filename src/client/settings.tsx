@@ -41,6 +41,6 @@ export function ProjectlessSettings({ rpc, browse, t }: PropsLocale<typeof PROJE
     </div>
     <small>{t('settings.active')}：{active}</small>
     {saved && <small role="status">{t('settings.saved')}</small>}
-    {error && <small role="alert" className="dsh-projectless-session-error">{error}</small>}
+    {error && <small role="alert" className="dsh-codexlike-projectless-error">{error}</small>}
   </section>
 }

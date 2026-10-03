@@ -46,7 +46,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     selection = workspaceId === undefined ? { kind: 'projectless' } : { kind: 'project', workspaceId }
     try { localStorage.setItem(SELECTION_KEY, JSON.stringify(selection)) } catch { /* Navigation still works with storage disabled. */ }
   }
-  const keyOf = (workspaceId?: WorkspaceId) => workspaceId ?? '::projectless-session'
+  const keyOf = (workspaceId?: WorkspaceId) => workspaceId ?? '::dsh-codexlike-projectless'
   const currentId = () => {
     const snapshot = sessions.list.getSnapshot()
     return (snapshot.ids as SessionId[]).find(id => isCurrentSession(snapshot, id))

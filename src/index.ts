@@ -21,13 +21,13 @@ import type { NativeTitleBridge } from './shared/native.ts'
 import { createRootSettings } from './host/settings.ts'
 
 /** Host half: provides authenticated DSH endpoints for filesystem provisioning. */
-export const name = 'dsh-projectless-session'
+export const name = 'dsh-codexlike-projectless'
 export const inject = ['connection', 'sessionTitle']
 
 export interface Config {
   /** Absolute parent for date folders; defaults to ~/Documents/DSH. */
   root?: string
-  /** Opt-in JSONL diagnostics at ROOT/.projectless-session.log. */
+  /** Opt-in JSONL diagnostics at ROOT/.dsh-codexlike-projectless.log. */
   debug?: boolean
 }
 
@@ -208,15 +208,15 @@ export function createProjectlessFetch(root: string, endpoint: ProjectlessEndpoi
 /** Register the least-privilege endpoints used by the browser half. */
 export function apply(ctx: Context, config: Config = {}): void {
   const root = config.root ?? join(homedir(), 'Documents', 'DSH')
-  const logger = createDiagnosticLogger(join(root, '.projectless-session.log'), config.debug === true, error => {
+  const logger = createDiagnosticLogger(join(root, '.dsh-codexlike-projectless.log'), config.debug === true, error => {
     console.warn(`${name}: diagnostic logging disabled (${diagnosticErrorCode(error)})`)
   })
   const runtime = createProjectlessRuntime(logger.emit, config.debug === true)
-  runtime.settings = createRootSettings(root, join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'storages', 'projectless-session-settings.json'))
+  runtime.settings = createRootSettings(root, join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'storages', 'dsh-codexlike-projectless-settings.json'))
   const title = (ctx as unknown as { sessionTitle?: NativeTitleBridge }).sessionTitle
   if (typeof title?.prepareProjectlessTitle === 'function') runtime.nativeTitle = title
   logger.emit('diagnostics.enabled')
-  ctx.effect(() => () => logger.flush(), 'dsh-projectless-session: flush diagnostics')
+  ctx.effect(() => () => logger.flush(), 'dsh-codexlike-projectless: flush diagnostics')
   for (const endpoint of PROJECTLESS_ENDPOINTS) {
     const path = `${PROJECTLESS_RPC_CHANNEL}/${projectlessEndpoint(endpoint)}`
     ctx.effect(() => ctx.connection.fetch.register({
@@ -224,6 +224,6 @@ export function apply(ctx: Context, config: Config = {}): void {
       methods: ['POST'],
       requestBody: 'buffered',
       fetch: createProjectlessFetch(root, endpoint, runtime),
-    }), `dsh-projectless-session: ${path}`)
+    }), `dsh-codexlike-projectless: ${path}`)
   }
 }

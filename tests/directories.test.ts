@@ -19,7 +19,7 @@ test('formats local date and sortable session directory names', () => {
 })
 
 test('creates the requested date/session hierarchy on the Host', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     const result = await createProjectlessDirectory(
       temporaryRoot,
@@ -41,7 +41,7 @@ test('rejects a relative configured root', async () => {
 })
 
 test('removes an unused empty projectless directory and its empty date parent', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     const created = await createProjectlessDirectory(
       temporaryRoot,
@@ -66,7 +66,7 @@ test('isIgnorableDirectoryEntry only matches OS metadata, not user hidden files'
 })
 
 test('removes a directory that only contains .DS_Store', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     const created = await createProjectlessDirectory(
       temporaryRoot,
@@ -85,7 +85,7 @@ test('removes a directory that only contains .DS_Store', async () => {
 })
 
 test('retains a directory that contains user files', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     const withNotes = await createProjectlessDirectory(
       temporaryRoot,
@@ -104,7 +104,7 @@ test('retains a directory that contains user files', async () => {
 })
 
 test('does not remove a date parent that still has another session directory', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     const first = await createProjectlessDirectory(
       temporaryRoot,
@@ -127,7 +127,7 @@ test('does not remove a date parent that still has another session directory', a
 })
 
 test('rejects unmanaged paths and reports an already-missing session directory', async () => {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-projectless-session-'))
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'dsh-codexlike-projectless-'))
   try {
     await assert.rejects(
       removeUnusedProjectlessDirectory(temporaryRoot, join(temporaryRoot, 'not-a-session')),

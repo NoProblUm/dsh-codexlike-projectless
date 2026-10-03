@@ -1,4 +1,4 @@
-export const SELECTION_KEY = 'dsh-projectless-session.selected-workspace'
+export const SELECTION_KEY = 'dsh-codexlike-projectless.selected-workspace'
 export type Selection = { kind: 'unset' } | { kind: 'projectless' } | { kind: 'project', workspaceId: string }
 
 /** Accept the old empty/string values without conflating absent and projectless. */

@@ -9,7 +9,8 @@ const original = resolve(process.argv[2] ?? 'E:/DeepSeekHarness/resources/app.as
 const output = resolve(process.argv[3] ?? 'native/staged/app.asar')
 const archive = openAsar(original)
 const replacements = new Map()
-const manifest = { targetVersion: '0.2.0-rc.2', pluginVersion: JSON.parse(readFileSync(resolve('package.json'), 'utf8')).version, original, output, originalSha256: '', outputSha256: '', entries: [] }
+const plugin = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
+const manifest = { targetVersion: '0.2.0-rc.2', pluginName: plugin.name, pluginVersion: plugin.version, original, output, originalSha256: '', outputSha256: '', entries: [] }
 const hash = data => createHash('sha256').update(data).digest('hex')
 for (const [path, patch] of Object.entries(patches)) {
   const entry = 'dsh/node_modules/@deepseek-ai/' + path

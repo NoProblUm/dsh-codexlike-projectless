@@ -1,0 +1,11 @@
+DSH Codexlike Projectless
+Maintained independently by NoProblUm.
+
+This project includes code derived from the MIT-licensed project
+jarvisluk/dsh-projectless-session by Jarvis Luk:
+https://github.com/jarvisluk/dsh-projectless-session
+
+The upstream copyright and MIT license are retained in LICENSE.
+This project has its own package identity, release numbering and development
+direction: a Codex-inspired conversation workflow within DeepSeek Harness.
+It is not an official DeepSeek or OpenAI project.

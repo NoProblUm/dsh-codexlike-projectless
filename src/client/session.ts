@@ -85,7 +85,7 @@ export function createAbandonClaim(): AbandonClaim {
 }
 
 /** Menu entry id for the projectless action; also its selected-state key. */
-export const PROJECTLESS_ENTRY_ID = '::projectless-session'
+export const PROJECTLESS_ENTRY_ID = '::dsh-codexlike-projectless'
 
 /** Workspaces this page provisioned, authoritative over the path heuristic. */
 export interface ProjectlessRegistry {

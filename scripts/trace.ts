@@ -19,7 +19,7 @@ const logger = createDiagnosticLogger(log, true, error => { console.error(error)
 const runtime = createProjectlessRuntime(logger.emit, true)
 let rpcNumber = 0
 async function rpc(endpoint: ProjectlessEndpoint, payload: unknown): Promise<Record<string, unknown>> {
-  const method = `projectless-session/${endpoint}`
+  const method = `dsh-codexlike-projectless/${endpoint}`
   const response = await createProjectlessFetch(root, endpoint, runtime)(new Request(`http://test.local/api/${method}`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ type: 'client-request', rpcId: `test-rpc-${++rpcNumber}`, method, payload }),

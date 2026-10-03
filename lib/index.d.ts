@@ -1,4 +1,4 @@
-export declare const name = "dsh-projectless-session";
+export declare const name = "dsh-codexlike-projectless";
 export declare const inject: string[];
 export interface Config { root?: string; debug?: boolean }
 import type { Context } from '@deepseek-ai/cordis';

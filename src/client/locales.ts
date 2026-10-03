@@ -1,6 +1,6 @@
 import type { LocaleDictOf } from '@deepseek-ai/dsh-client-ui-slots'
 
-export const PROJECTLESS_LOCALE_NS = 'projectless-session'
+export const PROJECTLESS_LOCALE_NS = 'dsh-codexlike-projectless'
 
 export const zh = {
   'picker.projectless': '无项目',
@@ -35,7 +35,7 @@ export const en: Record<ProjectlessLocaleKey, string> = {
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Projectless-session picker and error copy. */
-    'projectless-session': ProjectlessLocaleKey
+    'dsh-codexlike-projectless': ProjectlessLocaleKey
   }
 }
 
