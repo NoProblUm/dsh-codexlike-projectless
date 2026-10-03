@@ -172,8 +172,8 @@ export function install({ bundle, app, profile, state = join(profile, PLUGIN + '
       if (sha(target) !== record.installedSha256) throw new Error('Installed archive checksum failed')
       for (const file of compatibility) if (sha(file.path) !== hash(file.data)) throw new Error('Installed compatibility checksum failed')
       // Keep restore independent of the extracted ZIP and its location.
-      cpSync(join(bundle, 'installer.cjs'), join(state, 'installer.cjs'))
-      cpSync(join(bundle, 'install.ps1'), join(state, 'install.ps1'))
+      atomicWrite(join(state, 'installer.cjs'), readFileSync(join(bundle, 'installer.cjs')))
+      atomicWrite(join(state, 'install.ps1'), readFileSync(join(bundle, 'install.ps1')))
       writeFileSync(join(state, 'latest.json'), JSON.stringify({ backup }, null, 2) + '\n')
       return { version: manifest.pluginVersion, backup, state }
     } catch (error) {
@@ -196,17 +196,28 @@ export function restore(backup, { locked = false } = {}) {
   const lockPath = join(state, 'installer.lock')
   if (!locked) writeFileSync(lockPath, String(process.pid), { flag: 'wx' })
   try {
-    atomicWrite(join(record.appDirectory, 'resources/app.asar'), readFileSync(archive))
-    for (const file of record.files) {
-      if (file.exists) atomicWrite(file.path, readFileSync(join(backup, file.stored)))
-      else rmSync(file.path, { force: true })
-    }
-    const plugin = join(record.profileDirectory, 'node_modules', PLUGIN)
-    rmSync(plugin, { recursive: true, force: true })
-    if (record.pluginExists) {
-      if (record.pluginLink) symlinkSync(record.pluginLink, plugin, process.platform === 'win32' ? 'junction' : 'dir')
-      else cpSync(join(backup, 'plugin'), plugin, { recursive: true, filter: () => true })
-    }
+    const errors = []
+    const attempt = operation => { try { operation() } catch (error) { errors.push(error) } }
+    attempt(() => {
+      const target = join(record.appDirectory, 'resources/app.asar')
+      if (!existsSync(target) || sha(target) !== record.originalSha256) atomicWrite(target, readFileSync(archive))
+    })
+    for (const file of record.files) attempt(() => {
+      if (file.exists) {
+        // A permission error may have prevented the attempted write. Leave an
+        // already-original file alone so it cannot block other rollback steps.
+        if (!existsSync(file.path) || sha(file.path) !== file.sha256) atomicWrite(file.path, readFileSync(join(backup, file.stored)))
+      } else rmSync(file.path, { force: true })
+    })
+    attempt(() => {
+      const plugin = join(record.profileDirectory, 'node_modules', PLUGIN)
+      rmSync(plugin, { recursive: true, force: true })
+      if (record.pluginExists) {
+        if (record.pluginLink) symlinkSync(record.pluginLink, plugin, process.platform === 'win32' ? 'junction' : 'dir')
+        else cpSync(join(backup, 'plugin'), plugin, { recursive: true, filter: () => true })
+      }
+    })
+    if (errors.length) throw new AggregateError(errors, 'Some files could not be restored; backup: ' + backup)
     return { backup }
   } finally { if (!locked) rmSync(lockPath, { force: true }) }
 }

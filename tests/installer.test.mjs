@@ -53,10 +53,8 @@ function fixture(t, { version = '0.2.0-rc.2', existing = false } = {}) {
 }
 
 test('first install registers plugin, preserves unrelated YAML, repeats and restores exactly', t => {
-  console.log('Installer fixture: begin')
   const f = fixture(t)
-  console.log('Installer fixture: ready')
-  const first = install({ ...f, checkpoint: stage => console.log('Installer stage:', stage) })
+  const first = install(f)
   const dependency = JSON.parse(readFileSync(join(f.profile, 'package.json'))).dependencies[PLUGIN]
   assert.match(dependency, /^link:/)
   assert.ok(existsSync(dependency.slice(5)))
