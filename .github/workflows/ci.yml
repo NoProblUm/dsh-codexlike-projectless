@@ -31,7 +31,7 @@ jobs:
           node-version: '22.19'
           cache: npm
       - run: npm ci
-      - run: npm run test:installer
+      - run: node tests/installer.test.mjs
       - name: Parse PowerShell launchers
         shell: pwsh
         run: |
