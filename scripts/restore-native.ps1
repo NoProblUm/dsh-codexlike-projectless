@@ -1,7 +1,12 @@
 param([Parameter(Mandatory)][string]$BackupDirectory)
 $ErrorActionPreference = 'Stop'
 $backup = (Resolve-Path -LiteralPath $BackupDirectory).Path
+$newInstaller = Join-Path (Split-Path (Split-Path $backup -Parent) -Parent) 'install.ps1'
 $record = Get-Content -LiteralPath (Join-Path $backup 'restore.json') -Raw | ConvertFrom-Json
+if ($record.schema -eq 2) {
+  & $newInstaller -Restore -BackupDirectory $backup
+  exit $LASTEXITCODE
+}
 if (Get-Process -Name 'DeepSeek Harness' -ErrorAction SilentlyContinue) { throw '请完全退出 DSH 后再恢复。' }
 $pluginName = if ($record.pluginName) { $record.pluginName } else { 'dsh-projectless-session' }
 if ($pluginName -notin @('dsh-codexlike-projectless', 'dsh-projectless-session')) { throw '备份中的插件身份不受支持。' }

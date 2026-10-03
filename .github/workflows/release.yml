@@ -44,7 +44,10 @@ jobs:
             fs.writeFileSync("RELEASE_NOTES.md", log.slice(start, end < 0 ? undefined : end).trim() + "\n");
           '
           package_file="$(node -p "require('./npm-pack.json')[0].filename")"
-          sha256sum "$package_file" > SHA256SUMS
+          npm run package:installer
+          installer_file="output/dsh-codexlike-projectless-${version}-windows-installer.zip"
+          sha256sum "$package_file" "$installer_file" > SHA256SUMS
+          echo "installer_file=$installer_file" >> "$GITHUB_OUTPUT"
           echo "package_file=$package_file" >> "$GITHUB_OUTPUT"
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
           if [[ "$version" == *-* ]]; then
@@ -57,11 +60,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.pack.outputs.tag }}
           PACKAGE_FILE: ${{ steps.pack.outputs.package_file }}
+          INSTALLER_FILE: ${{ steps.pack.outputs.installer_file }}
           PRERELEASE: ${{ steps.pack.outputs.prerelease }}
         shell: bash
         run: |
           args=()
           if [[ "$PRERELEASE" == true ]]; then args+=(--prerelease); fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then exit 0; fi
-          gh release create "$RELEASE_TAG" "$PACKAGE_FILE" SHA256SUMS \
+          gh release create "$RELEASE_TAG" "$PACKAGE_FILE" "$INSTALLER_FILE" SHA256SUMS \
             --notes-file RELEASE_NOTES.md --title "$RELEASE_TAG" --target "$GITHUB_SHA" "${args[@]}"

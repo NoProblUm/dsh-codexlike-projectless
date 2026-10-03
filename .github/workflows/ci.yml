@@ -21,3 +21,33 @@ jobs:
       - run: npm run verify
       - run: git diff --exit-code -- lib
       - run: npm pack --dry-run
+
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:installer
+      - name: Parse PowerShell launchers
+        shell: pwsh
+        run: |
+          foreach ($file in @('scripts/installer/install.ps1', 'scripts/install-native.ps1', 'scripts/restore-native.ps1')) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+      - run: npm pack --ignore-scripts
+      - run: npm run package:installer
+      - run: node --test --test-name-pattern='PowerShell launcher' tests/installer.test.mjs
+      - name: Check the bundled launcher and nonzero failure status
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $bundle = "output/dsh-codexlike-projectless-$version-windows-installer"
+          node "$bundle/installer.cjs" --app "does-not-exist" --profile "does-not-exist"
+          if ($LASTEXITCODE -eq 0) { throw 'Missing application must fail' }
+          $global:LASTEXITCODE = 0

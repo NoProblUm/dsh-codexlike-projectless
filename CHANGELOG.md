@@ -4,6 +4,26 @@ Independent release history for DSH Codexlike Projectless. Historical developmen
 
 本日志记录 DSH Codexlike Projectless 的独立版本；历史开发验证记录单独保留。
 
+## 0.1.1 - 2026-10-04
+
+### English
+
+- Provide a Windows installer ZIP with a bundled Node.js installer; no npm installation or source build is needed by users.
+- Use the same entry point for first installation and updates, detect application paths, and prepare compatibility patches for the selected profile.
+- Store plugin files, original archives and restore tools under the profile so the download directory can be deleted.
+- Preserve plugin settings, edit YAML structurally, and restore pre-installation state after failed writes.
+- Document local `.tgz` import through a plugin market and the required native bridge step in both READMEs.
+- Add installer integration tests and a Windows CI job. Live Desktop installation and restart acceptance still need verification.
+
+### 简体中文
+
+- 提供 Windows 安装 ZIP，内置 Node.js 安装工具，用户无需安装 npm 依赖或构建源码。
+- 首次安装与更新使用同一入口，检测安装位置，并为目标 profile 自动准备兼容补丁。
+- 插件文件、原版 archive 和恢复工具保存在 profile 下，下载目录可以删除。
+- 保留插件设置，按 YAML 结构修改配置，写入失败后恢复安装前状态。
+- 中英文 README 补充插件市场本地 `.tgz` 导入及必需的原生补丁步骤。
+- 增加安装器集成测试与 Windows CI。实际 Desktop 安装、重启验收仍需验证。
+
 ## 0.1.0 - 2026-10-03
 
 ### English
