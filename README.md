@@ -53,12 +53,10 @@ You need Windows, an installed copy of DSH Desktop 0.2.0-rc.2, and Node.js 22.19
 ### 1. Install from the plugin market (recommended)
 
 1. Open DSH's plugin market, search for `dsh-codexlike-projectless` (DSH Codexlike Projectless), and install it. Use the desktop profile you actually run.
-2. Download `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). Use the installer version matching the plugin package, and extract it to a local directory.
-3. Disable the old `dsh-projectless-session` plugin if present, then fully quit DSH, including its tray process.
-4. Double-click `Install.cmd` in the extracted directory to install the native bridge. For a custom profile, use the PowerShell command under direct installation below with that same profile.
-5. After "Installed / 已安装" appears, reopen DSH. In Settings → General → No-project conversations, choose a workspace root and save it.
+2. If the old `dsh-projectless-session` plugin is installed, disable it to avoid conflicts.
+3. Finish installation in the market, then restart DSH.
 
-The market installs the plugin package; the Windows installer supplies the native bridge required for the complete workflow. Both steps are required. The installer also registers a local plugin copy for subsequent updates and restoration. After a market update, run the matching installer again and restart DSH.
+This installs the plugin package directly through the market. For full functionality, the current version also requires a matching native bridge; see the separate setup section below if it has not been installed. The market package does not install the native bridge automatically.
 
 ### 2. Direct installation
 
@@ -93,6 +91,14 @@ npm run package:installer
 `npm run verify` checks types, runs the plugin and installer tests, and builds the plugin. The remaining commands create the plugin `.tgz` and a complete Windows installer bundle in `output/`.
 
 Disable the old `dsh-projectless-session` plugin if present, then fully quit DSH, including its tray process. Run `Install.cmd` from `output/dsh-codexlike-projectless-0.1.1-windows-installer/`, or extract the generated ZIP and run it there. After installation succeeds, reopen DSH and choose a workspace root in Settings → General → No-project conversations. For custom application or profile paths, use the same PowerShell options as direct installation. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation details.
+
+### Native bridge setup for market installations
+
+The native bridge modifies DSH's application archive and is separate from installing the plugin through the market. If a matching bridge is already installed, you do not need to repeat this step. Direct installation and source installation above include it.
+
+To set it up, download the matching `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) and extract it. Fully quit DSH, including its tray process, then run `Install.cmd`. For a custom profile, use the PowerShell command under direct installation with the same profile used by the market. After installation succeeds, reopen DSH and choose a workspace root in Settings → General → No-project conversations.
+
+The current installer installs both the bridge and a local plugin copy, replacing the market dependency with a local `link:` dependency. It has no bridge-only mode. Use the installer for subsequent updates, with matching plugin and bridge versions.
 
 ### Update an older installation
 

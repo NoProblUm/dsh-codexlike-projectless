@@ -51,12 +51,10 @@ DSH Codexlike Projectless 独立维护，采用自己的版本编号。仓库名
 ### 1. 从插件市场安装（推荐）
 
 1. 打开 DSH 插件市场，搜索 `dsh-codexlike-projectless`（DSH Codexlike Projectless）并安装。确认操作的是实际使用的 desktop profile。
-2. 从 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) 下载 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`，安装器版本须与插件包一致，解压到本机目录。
-3. 如果安装了旧插件 `dsh-projectless-session`，先禁用它，然后完全退出 DSH，包括托盘中的后台进程。
-4. 双击解压目录中的 `Install.cmd`，安装完整功能所需的原生补丁。使用自定义 profile 时，按下方“直接安装”的 PowerShell 命令指定同一个 profile。
-5. 出现“Installed / 已安装”后重新打开 DSH，在“设置 → 通用 → 无项目会话”中选择工作区根目录并保存。
+2. 如果安装了旧插件 `dsh-projectless-session`，禁用它以避免冲突。
+3. 在市场内完成安装，然后重启 DSH。
 
-插件市场安装插件包，Windows 安装器提供完整流程所需的原生补丁，两步都需要完成。安装器也会登记本地插件副本，供后续更新与恢复使用。市场更新插件后，仍需运行同版本安装器并重启 DSH。
+以上操作直接通过市场安装插件包。当前版本的完整功能还依赖匹配的原生补丁；尚未安装补丁时，请按下方独立说明配置。市场插件包不会自动安装原生补丁。
 
 ### 2. 直接安装
 
@@ -91,6 +89,14 @@ npm run package:installer
 `npm run verify` 执行类型检查、插件与安装器测试并构建插件。后两条命令生成插件 `.tgz`，并在 `output/` 下生成完整的 Windows 安装目录和 ZIP。
 
 如有旧插件 `dsh-projectless-session`，先禁用它，然后完全退出 DSH，包括托盘进程。运行 `output/dsh-codexlike-projectless-0.1.1-windows-installer/` 中的 `Install.cmd`，也可以解压生成的 ZIP 后运行。安装成功后重新打开 DSH，在“设置 → 通用 → 无项目会话”中配置工作区根目录。自定义应用目录或 profile 时，使用“直接安装”中的 PowerShell 参数。开发与验证细节见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+### 市场安装后的原生补丁配置
+
+原生补丁需要修改 DSH 的应用 archive，与市场安装插件包是独立的步骤。已安装匹配补丁时无需重复操作；上面的直接安装和源码安装已经包含此步骤。
+
+从 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) 下载匹配版本的 `dsh-codexlike-projectless-0.1.1-windows-installer.zip` 并解压。完全退出 DSH，包括托盘进程，然后运行 `Install.cmd`。自定义 profile 时，使用“直接安装”中的 PowerShell 命令，指定市场安装时使用的同一个 profile。安装成功后重新打开 DSH，在“设置 → 通用 → 无项目会话”中配置工作区根目录。
+
+当前安装器会同时安装原生补丁和本地插件副本，将市场安装的依赖替换为本地 `link:` 依赖，没有仅安装补丁的模式。后续请使用安装器更新，保持插件与补丁版本匹配。
 
 ### 从旧安装流程更新
 
