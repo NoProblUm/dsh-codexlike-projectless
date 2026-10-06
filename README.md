@@ -50,7 +50,17 @@ General Settings lets you browse, save and inspect the effective workspace root.
 
 You need Windows, an installed copy of DSH Desktop 0.2.0-rc.2, and Node.js 22.19 or newer. The Release installer handles both first installation and updates. You do not need to install npm dependencies, compile source, or prepare patches manually.
 
-### Direct installation (recommended)
+### 1. Install from the plugin market (recommended)
+
+1. Open DSH's plugin market, search for `dsh-codexlike-projectless` (DSH Codexlike Projectless), and install it. Use the desktop profile you actually run.
+2. Download `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). Use the installer version matching the plugin package, and extract it to a local directory.
+3. Disable the old `dsh-projectless-session` plugin if present, then fully quit DSH, including its tray process.
+4. Double-click `Install.cmd` in the extracted directory to install the native bridge. For a custom profile, use the PowerShell command under direct installation below with that same profile.
+5. After "Installed / 已安装" appears, reopen DSH. In Settings → General → No-project conversations, choose a workspace root and save it.
+
+The market installs the plugin package; the Windows installer supplies the native bridge required for the complete workflow. Both steps are required. The installer also registers a local plugin copy for subsequent updates and restoration. After a market update, run the matching installer again and restart DSH.
+
+### 2. Direct installation
 
 1. Download `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) and extract it to a local directory. Run it from the extracted directory.
 2. Fully quit DSH, including its tray process. If `dsh-projectless-session` is installed, disable it in DSH first.
@@ -67,16 +77,22 @@ The installer reads the original DSH archive, checks its version and patch ancho
 
 The plugin copy, original archive and restore tools live in `dsh-codexlike-projectless-installer` under the selected profile. After installation succeeds, you can delete the downloaded ZIP and extracted directory. Keep the installer directory for updates and restoration. The profile uses a local `link:` dependency pointing to the stored plugin copy. To update, download the new installer ZIP, quit DSH, and run the same entry point.
 
-### Import a local package through the plugin market
+### 3. Install from source
 
-This plugin is not yet listed in the plugin market or published to npm. A market or plugin manager that supports local package import can install the Release `.tgz`:
+With Git and Node.js installed, open PowerShell and run:
 
-1. Download `dsh-codexlike-projectless-0.1.1.tgz` and `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from the same Release.
-2. Open the plugin market or plugin management page in DSH. Use its local package import action, select the downloaded `.tgz`, and finish installation. The action's name varies by client. Use the desktop profile you actually run; pass that same profile to the installer if it is a custom location.
-3. Disable `dsh-projectless-session` if present, then fully quit DSH.
-4. Extract the matching installer ZIP, run `Install.cmd`, and reopen DSH after installation succeeds.
+```powershell
+git clone https://github.com/NoProblUm/dsh-codexlike-projectless.git
+cd dsh-codexlike-projectless
+npm ci
+npm run verify
+npm pack --ignore-scripts
+npm run package:installer
+```
 
-Market import installs the plugin package. Step 4 supplies the native bridge required for the complete workflow. Import the `.tgz`, not the installer ZIP. Direct installation handles both parts, so market import is optional.
+`npm run verify` checks types, runs the plugin and installer tests, and builds the plugin. The remaining commands create the plugin `.tgz` and a complete Windows installer bundle in `output/`.
+
+Disable the old `dsh-projectless-session` plugin if present, then fully quit DSH, including its tray process. Run `Install.cmd` from `output/dsh-codexlike-projectless-0.1.1-windows-installer/`, or extract the generated ZIP and run it there. After installation succeeds, reopen DSH and choose a workspace root in Settings → General → No-project conversations. For custom application or profile paths, use the same PowerShell options as direct installation. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation details.
 
 ### Update an older installation
 
@@ -109,6 +125,12 @@ Without a saved override, the root comes from the profile's `dsh-codexlike-proje
 The `0.1.1` installer integration tests cover first installation, updates, configuration preservation and rollback using synthetic ASAR archives with actual DSH 0.2.0-rc.2 module code. They do not establish live Desktop installation or restart acceptance. Earlier build checks: [0.1.0 validation](docs/独立初版验证.md).
 
 See the [historical local validation record](docs/本地完整版测试.md) (Chinese). Its versions, logs and screenshots refer to development builds before the rename; they do not establish installation and restart acceptance for `0.1.0`. Drafts support model, preset, permissions and planning mode selection, plus attachments. Tools, tasks and commands that require a real Session or execution directory become available after the first message creates the Session. Draft text and attachments exist only in runtime memory and do not survive refresh, closing or restart. Restart DSH after updating the native bridge; hot replacement of the plugin is not an installation acceptance check.
+
+## Acknowledgements
+
+Special thanks to [Jarvis Luk](https://github.com/jarvisluk) and the original [jarvisluk/dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session) repository, the main reference and source foundation for this project. This project includes code derived from that MIT-licensed repository and builds on its projectless conversation work with the Codex-like workflow described above.
+
+The original copyright and MIT license are retained in [LICENSE](LICENSE), with source attribution in [NOTICE](NOTICE). This repository is maintained independently by NoProblUm.
 
 ## Releases and development
 

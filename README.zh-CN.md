@@ -48,7 +48,17 @@ DSH Codexlike Projectless 独立维护，采用自己的版本编号。仓库名
 
 需要 Windows、已安装的 DSH Desktop 0.2.0-rc.2，以及 Node.js 22.19 或更新版本。使用 Release 安装包时，无需安装 npm 依赖、编译源码或手动生成补丁。安装器同时处理首次安装和更新。
 
-### 直接安装（推荐）
+### 1. 从插件市场安装（推荐）
+
+1. 打开 DSH 插件市场，搜索 `dsh-codexlike-projectless`（DSH Codexlike Projectless）并安装。确认操作的是实际使用的 desktop profile。
+2. 从 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) 下载 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`，安装器版本须与插件包一致，解压到本机目录。
+3. 如果安装了旧插件 `dsh-projectless-session`，先禁用它，然后完全退出 DSH，包括托盘中的后台进程。
+4. 双击解压目录中的 `Install.cmd`，安装完整功能所需的原生补丁。使用自定义 profile 时，按下方“直接安装”的 PowerShell 命令指定同一个 profile。
+5. 出现“Installed / 已安装”后重新打开 DSH，在“设置 → 通用 → 无项目会话”中选择工作区根目录并保存。
+
+插件市场安装插件包，Windows 安装器提供完整流程所需的原生补丁，两步都需要完成。安装器也会登记本地插件副本，供后续更新与恢复使用。市场更新插件后，仍需运行同版本安装器并重启 DSH。
+
+### 2. 直接安装
 
 1. 从 [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) 下载 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`，解压到本机目录。不要直接在压缩包中运行。
 2. 完全退出 DSH，包括托盘中的后台进程。如果安装了旧插件 `dsh-projectless-session`，先在 DSH 中禁用它。
@@ -65,16 +75,22 @@ DSH Codexlike Projectless 独立维护，采用自己的版本编号。仓库名
 
 插件副本、原版 archive 和恢复工具保存在目标 profile 下的 `dsh-codexlike-projectless-installer` 目录。安装成功后可以删除下载的 ZIP 和解压目录；不要删除这个安装器目录，它供后续更新和恢复使用。安装器将插件依赖登记为指向该目录的本地 `link:` 依赖，不依赖下载目录。更新时下载新版安装 ZIP，退出 DSH，再运行相同入口。
 
-### 通过插件市场导入本地包
+### 3. 从源码安装
 
-本插件目前尚未上传插件市场，也未发布到 npm，因此不能通过市场搜索直接安装。支持本地包导入的插件市场或插件管理界面可以安装 Release 中的 `.tgz`：
+安装 Git 和 Node.js 后，在 PowerShell 中运行：
 
-1. 从同一版本的 Release 下载 `dsh-codexlike-projectless-0.1.1.tgz` 和 `dsh-codexlike-projectless-0.1.1-windows-installer.zip`。
-2. 打开 DSH 的插件市场或插件管理页面，进入本地包导入入口，选择下载的 `.tgz`，完成安装。各客户端的入口名称可能不同。确认操作的是实际使用的 desktop profile；自定义 profile 后续也要传给安装器。
-3. 禁用旧的 `dsh-projectless-session`（如有），然后完全退出 DSH。
-4. 解压同版本的安装 ZIP，双击 `Install.cmd`，完成原生补丁安装，再重新打开 DSH。
+```powershell
+git clone https://github.com/NoProblUm/dsh-codexlike-projectless.git
+cd dsh-codexlike-projectless
+npm ci
+npm run verify
+npm pack --ignore-scripts
+npm run package:installer
+```
 
-市场导入只安装插件包，原生补丁仍需第 4 步。不要把安装 ZIP 当作插件包导入。统一安装器也支持直接安装，因此市场导入不是必需的前置步骤。
+`npm run verify` 执行类型检查、插件与安装器测试并构建插件。后两条命令生成插件 `.tgz`，并在 `output/` 下生成完整的 Windows 安装目录和 ZIP。
+
+如有旧插件 `dsh-projectless-session`，先禁用它，然后完全退出 DSH，包括托盘进程。运行 `output/dsh-codexlike-projectless-0.1.1-windows-installer/` 中的 `Install.cmd`，也可以解压生成的 ZIP 后运行。安装成功后重新打开 DSH，在“设置 → 通用 → 无项目会话”中配置工作区根目录。自定义应用目录或 profile 时，使用“直接安装”中的 PowerShell 参数。开发与验证细节见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ### 从旧安装流程更新
 
@@ -107,6 +123,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\你的用户名\.d
 `0.1.1` 的安装器集成测试覆盖首次安装、更新、配置保留和失败回滚，使用合成 ASAR 与 DSH 0.2.0-rc.2 的实际模块代码；这些测试不能代替真实 Desktop 安装与重启验收。`0.1.0` 构建检查见 [初版验证](docs/独立初版验证.md)。
 
 历史功能验证见 [本地完整版测试](docs/本地完整版测试.md)。其中版本号、日志和截图对应改名前的开发构建，不代表 `0.1.0` 已完成安装与重启验收。草稿期支持选择模型、预设、权限、规划模式和添加附件。需要真实会话或执行目录的工具、任务与命令在首次消息创建真实会话之后使用。草稿只在运行期内存中，刷新、关闭或重启不保留正文和附件。原生补丁更新后必须重启 DSH；插件热替换不作为本地安装验收方式。
+
+## 致谢
+
+感谢 [Jarvis Luk](https://github.com/jarvisluk) 开源的原仓库 [jarvisluk/dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session)，它是本项目的主要参考和源码基础。本项目包含从该 MIT 许可仓库衍生的代码，并在其无项目会话工作的基础上开发了上述类似 Codex 的会话流程。
+
+原作者的版权声明和 MIT 许可保留在 [LICENSE](LICENSE) 中，源码来源说明见 [NOTICE](NOTICE)。本仓库由 NoProblUm 独立维护。
 
 ## 发布与开发
 
