@@ -28,6 +28,7 @@ export type NativeConversation = IConversation & {
 declare module '@deepseek-ai/cordis' {
   interface Events {
     'projectless/label'(): string | undefined
+    'projectless/open-draft'(): Promise<void> | undefined
     'projectless/new-session'(workspaceId?: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId, currentSessionId?: SessionId): true | undefined
     'projectless/select-workspace'(workspaceId: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId): Promise<void> | undefined
     'projectless/is-session'(sessionId: SessionId): boolean | undefined

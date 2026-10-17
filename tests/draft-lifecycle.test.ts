@@ -66,7 +66,9 @@ test('startup preserves saved no-project over native blank restore; history and 
   const flush = () => new Promise<void>(resolve => setImmediate(resolve))
   const errors: unknown[] = []
   try {
-    const drafts = installProjectlessDrafts(ctx as never, {} as never, new Set(), () => {}, error => { errors.push(error) })
+    const drafts = installProjectlessDrafts(ctx as never, {} as never, new Set(), () => {}, error => { errors.push(error) }, {
+      admission: () => undefined, beginFirstSend() {},
+    })
     await flush()
     assert.match(current, /^projectless-draft-/)
     assert.deepEqual(JSON.parse(storage.get(SELECTION_KEY)!), { kind: 'projectless' })

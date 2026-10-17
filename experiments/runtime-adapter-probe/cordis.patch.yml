@@ -1,0 +1,3 @@
+- insert:
+    - id: runtime-adapter-probe
+      name: dsh-runtime-adapter-probe

@@ -4,6 +4,28 @@ Independent release history for DSH Codexlike Projectless. Historical developmen
 
 本日志记录 DSH Codexlike Projectless 的独立版本；历史开发验证记录单独保留。
 
+## 1.0.0-rc1 - 2026-10-17
+
+### English
+
+- Ship one prebuilt market package with a version-specific in-memory adapter for the verified Windows Desktop 0.2.0-rc.2 build. No archive patch or external installer is part of the new installation path.
+- Keep client-local drafts, the native composer and attachment registry, selected settings, first-send title preparation and Workspace detachment.
+- Install startup navigation interception before connection-dependent work; retain native default-project initialization for an unset choice and prioritize valid history on restore.
+- Reconcile uncertain submission by its native request identity, preserve resources and input on transport failures, and avoid sweeping earlier uncertain operations after reload.
+- Check native command results before sending; use `/plan` without treating `on` as a flag. Preserve wrapper ownership during teardown.
+- Drafts are page-local; closing, refreshing, restarting or disabling does not promise recovery. Old archive installations require an explicit verified restoration before migration.
+- Release assets are the plugin `.tgz` and checksum. Detailed acceptance evidence and remaining limitations are maintained in docs/运行时适配与验收.md.
+
+### 简体中文
+
+- 使用单一预构建市场包，为已验证的 Windows Desktop 0.2.0-rc.2 构建提供内存适配；新安装路径不包含归档补丁或外部安装器。
+- 保留本地草稿、原生输入和附件注册表、所选设置、首发主题准备及 Workspace 注销。
+- 联网业务之前接入启动导航；未保存选择时保留默认项目初始化，启动优先恢复有效历史。
+- 按原生请求标识确认结果不明的提交，保留输入和资源，刷新后不清扫此前不确定的操作。
+- 发送前检查原生命令结果，使用无参数 `/plan`，释放时检查包装归属。
+- 草稿仅在当前页面保留；关闭、刷新、重启或停用后不承诺恢复。旧归档安装必须明确恢复原版后迁移。
+- 发布产物为插件 `.tgz` 和校验文件。详细验收证据及限制见 docs/运行时适配与验收.md。
+
 ## 0.1.1 - 2026-10-04
 
 ### English

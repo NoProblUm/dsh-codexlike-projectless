@@ -1,0 +1,2 @@
+DSH runtime adapter attachment acceptance: 2026-10-17.
+Expected: these bytes reach the final real session exactly once.

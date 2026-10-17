@@ -74,8 +74,9 @@ test('registers one exact /api Fetch route per endpoint', () => {
     '/api/dsh-codexlike-projectless/prepare-title',
     '/api/dsh-codexlike-projectless/bind-title',
     '/api/dsh-codexlike-projectless/save-root',
+    '/api/dsh-codexlike-projectless/runtime-status',
   ])
-  assert.deepEqual(routes.map(route => route.methods), Array.from({ length: 7 }, () => ['POST']))
+  assert.deepEqual(routes.map(route => route.methods), Array.from({ length: 8 }, () => ['POST']))
 })
 
 test('topic RPC shares live ownership with remove RPC, but ownership is not inferred after restart', async () => {

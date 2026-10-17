@@ -13,6 +13,7 @@ export type PromptAcceptance = 'accepted' | 'rejected' | 'unknown'
 
 /** Adapter to native draft input, title preparation and admission. */
 export interface FirstPromptServices<Input, PreparedTitle extends { title: string }> {
+  signal?: AbortSignal
   prepareTitle(input: Input): Promise<PreparedTitle>
   createSession?(workspaceId: WorkspaceId, title: PreparedTitle): Promise<SessionId>
   provisionDirectory(title: string): Promise<string>
@@ -35,12 +36,15 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
   pending: Set<WorkspaceId>,
   diagnostics: DiagnosticSink = noDiagnostics,
 ): Promise<{ receipt: ProjectlessSessionReceipt, acceptance: PromptAcceptance }> {
+  services.signal?.throwIfAborted()
   diagnostics('title.preparation.started')
   const title = await services.prepareTitle(input)
+  services.signal?.throwIfAborted()
   diagnostics('title.preparation.finished')
   const path = await services.provisionDirectory(title.title)
   let workspace
   try {
+    services.signal?.throwIfAborted()
     workspace = await host.create({ path })
   } catch (error) {
     await services.removeDirectory(path).catch(services.onError)
@@ -53,12 +57,14 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
   let sending = false
   let protectPending = false
   try {
+    services.signal?.throwIfAborted()
     const sessionId = services.createSession === undefined
       ? await host.connectWorkspace(workspace.workspaceId)
       : await services.createSession(workspace.workspaceId, title)
     receipt = { sessionId, workspaceId: workspace.workspaceId, path }
     diagnostics('session.created', { sessionId, workspaceId: workspace.workspaceId, path })
     await services.bindPreparedTitle(sessionId, title)
+    services.signal?.throwIfAborted()
     sending = true
     const acceptance = await services.send(sessionId, input)
     diagnostics(`prompt.${acceptance}`, { sessionId, workspaceId: workspace.workspaceId })
