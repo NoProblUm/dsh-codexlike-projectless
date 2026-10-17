@@ -42,7 +42,11 @@ establish live acceptance. See docs/运行时适配与验收.md.
 
 Follow the installation instructions in README.md. Do not
 commit DSH archives, profiles, model logs, installation backups or local test data.
-The GitHub tag must match `package.json`; the release workflow does not publish npm.
+The GitHub tag must match `package.json`. After verification, `release.yml` publishes
+the same prebuilt package to GitHub Releases and npm using trusted publishing
+(OIDC, no npm token). Stable versions use `latest`; prereleases use `next`.
+Already published npm versions are skipped on retries. Use the workflow's manual
+Run workflow action to recover a failed release without creating another version.
 
 Keep the filesystem endpoints on DSH's authenticated `/api` Connection channel;
 do not expose them on a route that skips its Host/Origin fence and browser
