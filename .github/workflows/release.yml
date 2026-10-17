@@ -4,7 +4,7 @@ on:
   push:
     tags: ['v*']
     branches: [main]
-    paths: [package.json]
+    paths: [package.json, 'lib/**']
 
 permissions:
   contents: write
