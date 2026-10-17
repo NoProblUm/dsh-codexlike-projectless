@@ -1,6 +1,20 @@
 # Changelog / 变更日志
 
 
+## 1.0.1 - 2026-10-17
+
+### 简体中文
+
+- 补发本地最终 1.0.0 中遗漏的新建会话修正：项目内全局新建继承当前项目；无项目下新建仍创建本地草稿。
+- 保留项目内带参数新建的原生初始化回调，避免初始文本丢失。
+- 保留 README 原文与示例图，仅简要说明当前版本与 0.x 的区别。
+
+### English
+
+- Include the fixes omitted from the published 1.0.0: global New Chat inherits the current project, while projectless chats open a new local draft.
+- Preserve native initialization callbacks for project chats created with initial input.
+- Keep the original README content and screenshots, with a short comparison between the current version and 0.x.
+
 ## 1.0.0 - 2026-10-17
 
 ### 简体中文

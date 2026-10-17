@@ -3,7 +3,7 @@ import test from 'node:test'
 import { installProjectlessDrafts } from '../src/client/draft.ts'
 import { SELECTION_KEY } from '../src/client/selection.ts'
 
-test('startup preserves no-project; unscoped new stays local and explicit workspace delegates', async () => {
+test('global new inherits current project; projectless stays local and explicit workspace delegates', async () => {
   const storage = new Map([[SELECTION_KEY, JSON.stringify({ kind: 'projectless' })]])
   const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
@@ -98,10 +98,11 @@ test('startup preserves no-project; unscoped new stays local and explicit worksp
     assert.deepEqual(projects[0]!.sessionIds, membership, 'switching never changes historical project membership')
     assert.equal(rows['history-a']!.blank, history!.blank)
     open('history-a')
-    handlers.get('projectless/new-session')!()
+    const globalOptions = { prompt: 'project prompt', clearPreviousDraft: true, agentPreset: 'standard' }
+    assert.equal(handlers.get('projectless/new-session')!(undefined, 'history-a', globalOptions), undefined,
+      'global new from a project must delegate to native navigation instead of selecting ungrouped')
     await flush()
-    assert.match(current, /^projectless-draft-/)
-    assert.notEqual(current, a)
+    assert.equal(current, 'history-a', 'local draft handler must leave project creation to native navigation')
     const beforeExplicit = current
     assert.equal(handlers.get('projectless/new-session')!('a'), undefined)
     await flush()

@@ -136,8 +136,9 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     detachments.delete(id)
     pending.delete(receipt.workspaceId)
   })
-  ctx.on('projectless/new-session', (workspaceId, _currentSessionId, options) => {
-    if (workspaceId !== undefined) return undefined
+  ctx.on('projectless/new-session', (workspaceId, currentSessionId, options) => {
+    const current = currentSessionId ?? currentId()
+    if (workspaceId !== undefined || current !== undefined && workspaceOf(current) !== undefined) return undefined
     void openEditor(undefined, true).then(async id => {
       if (disposed || options === undefined) return
       const reference = held.get(id)

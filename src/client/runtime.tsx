@@ -93,7 +93,7 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       return original.apply(receiver, args)
     })
     wrap(navigation, 'openWorkspace', (original, receiver, args) => {
-      if (active && business && args[1] !== undefined) {
+      if (active && business && args[1] !== undefined && args[2] === undefined && isDraft(receiver.mainReference?.sessionId)) {
         requireActive()
         const result = ctx.bail('projectless/select-workspace', args[0])
         if (result !== undefined) return result

@@ -6,19 +6,13 @@
 
 DSH Codexlike Projectless 独立维护，采用自己的版本编号。仓库名和内部插件名均为 `dsh-codexlike-projectless`。源码来源和 MIT 许可说明见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不是 DeepSeek 或 OpenAI 官方项目。
 
-## 1.0.0 更新说明（2026-10-17）
+## 当前版本与 0.x 的区别
 
-当前正式版为 **1.0.0**，支持 **Windows DSH Desktop 0.2.1-rc.2**，对应构建 `332895e0f7c9d4dbfb29729f5eb367fa263ff986`。
+当前版本为 **1.0.1**，支持 Windows DSH Desktop **0.2.1-rc.2**（构建 `332895e0f7c9d4dbfb29729f5eb367fa263ff986`）。通过插件市场或官方插件管理器安装 [1.0.1 插件包](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.1/dsh-codexlike-projectless-1.0.1.tgz)，正常退出并重新打开 DSH 即可。
 
-- 通过插件市场或官方插件管理器安装 [dsh-codexlike-projectless-1.0.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.0/dsh-codexlike-projectless-1.0.0.tgz)，然后正常退出并重新打开 DSH。本版已内置运行时适配层，无需外部安装器或归档补丁。
-- 保留原生输入框、模型与推理档位、Agent、规划及附件。真实 Session 建立后才通过原生服务上传文件，首发前核对所选模型路由与推理档位。
-- 结果不明时保留输入和资源，禁止重复首发；Workspace 注销失败时保留已接收的会话与产物，支持独立重试注销。
-- 从旧补丁安装迁移时，先按匹配的备份记录恢复原版应用，再安装 1.0.0；不要将运行时适配层叠加到旧归档补丁上。
-- 草稿仍只在当前页面内存中保存，不保证刷新、关闭或重启后恢复。其他宿主构建及第三方接管组合需要单独验证。
+0.x 需要额外安装原生补丁；1.x 已将运行时适配层放进插件包，无需外部安装器或改写应用归档。旧补丁用户需先按原安装记录恢复原版应用，再安装新版。无项目草稿、首发按日期和主题创建目录的用法不变。
 
-用户已确认重新真实测试通过；本次 Linux、Windows 发布检查均通过。详情见 [1.0.0 发布页](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.0.0)、[变更日志](CHANGELOG.md)和[适配记录](docs/适配-DSH-0.2.1-rc.2.md)，历史测试限制予以保留。
-
-> 下方保留上一版 README 正文与原示例图。其中 0.1.1、DSH 0.2.0-rc.2 及原生补丁安装说明属于旧版记录；安装当前版本请使用上方 1.0.0 说明。截图继续保留原始拍摄日期和构建说明。
+下方保留 0.x 的安装记录和原示例图；当前版本请按上方说明安装。详细变更见 [CHANGELOG](CHANGELOG.md)。
 
 当前版本 `0.1.1`，适配 **Windows 上的 DSH Desktop 0.2.0-rc.2**。独立版本编号从 `0.1.0` 开始。完整流程需要插件和 DSH 原生接入补丁；只安装插件包不能启用完整流程。发布插件包、Windows 安装包和源码，不分发 DSH 的 `app.asar`、用户 profile 或本机备份。
 

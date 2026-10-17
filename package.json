@@ -1,6 +1,6 @@
 {
   "name": "dsh-codexlike-projectless",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Codex-like projectless chats for DeepSeek Harness, with working directories created by date and topic on first send.",
   "keywords": [
     "deepseek",

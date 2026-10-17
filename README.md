@@ -6,19 +6,13 @@ Codex-like no-project conversations for DeepSeek Harness: write your message fir
 
 DSH Codexlike Projectless is independently maintained with its own release history. The repository and internal plugin are both named `dsh-codexlike-projectless`. Source attribution and MIT license details are in [NOTICE](NOTICE) and [LICENSE](LICENSE). This is not an official DeepSeek or OpenAI project.
 
-## 1.0.0 update — 2026-10-17
+## Current version and 0.x
 
-The current stable release is **1.0.0**, supporting **Windows DSH Desktop 0.2.1-rc.2**, build `332895e0f7c9d4dbfb29729f5eb367fa263ff986`.
+The current version is **1.0.1**, for Windows DSH Desktop **0.2.1-rc.2** (build `332895e0f7c9d4dbfb29729f5eb367fa263ff986`). Install the [1.0.1 plugin package](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.1/dsh-codexlike-projectless-1.0.1.tgz) through the plugin market or official plugin manager, then quit and reopen DSH.
 
-- Install [dsh-codexlike-projectless-1.0.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.0/dsh-codexlike-projectless-1.0.0.tgz) through the plugin market or official plugin manager, then quit and reopen DSH normally. This release includes the runtime adapter; no external installer or archive patch is needed.
-- Native input, model/reasoning selection, Agent presets, planning and attachments remain available. Files upload through the native service after Session creation; first send validates the selected model route and reasoning effort.
-- Uncertain submissions retain input and resources and block duplicate first sends. Failed Workspace detachment preserves the accepted Session and output and supports a separate retry.
-- For an old patched installation, restore the original application using its matching backup record before installing 1.0.0. Do not layer the runtime adapter over an archive patch.
-- Drafts remain page-local and are not guaranteed to survive refresh, closing or restart. Other host builds and third-party interception combinations require separate validation.
+0.x required a separate native patch. 1.x includes the runtime adapter in the plugin package and needs no external installer or archive changes. If you installed an old patch, restore the original application using its installation record before installing this version. No-project drafts and dated topic directories on first send work as before.
 
-The maintainer confirmed a successful manual retest. Linux and Windows release checks passed. See [Release 1.0.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.0.0), [CHANGELOG](CHANGELOG.md) and the [adaptation record](docs/适配-DSH-0.2.1-rc.2.md) for details and historical test limitations.
-
-> The previous README content and example screenshots are retained below. References to 0.1.1, DSH 0.2.0-rc.2 and native-bridge installation describe the older release; use the 1.0.0 instructions above for the current version. The screenshot captions retain their original capture date and build.
+The 0.x installation record and original screenshots remain below. Use the instructions above for the current version; see [CHANGELOG](CHANGELOG.md) for release details.
 
 The current version is **0.1.1**, targeting **DSH Desktop 0.2.0-rc.2 on Windows**. Independent release numbering starts at `0.1.0`. The complete flow requires the plugin and the native DSH bridge; the plugin package alone cannot enable it. Releases contain the plugin package, Windows installer and source. They do not include DSH's `app.asar`, user profiles or local backups.
 
