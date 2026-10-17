@@ -12,9 +12,9 @@ The current version is **1.0.1**, for Windows DSH Desktop **0.2.1-rc.2** (build 
 
 0.x required a separate native patch. 1.x includes the runtime adapter in the plugin package and needs no external installer or archive changes. If you installed an old patch, restore the original application using its installation record before installing this version. No-project drafts and dated topic directories on first send work as before.
 
-The 0.x installation record and original screenshots remain below. Use the instructions above for the current version; see [CHANGELOG](CHANGELOG.md) for release details.
+The original screenshots remain below. See [CHANGELOG](CHANGELOG.md) for release details.
 
-The current version is **0.1.1**, targeting **DSH Desktop 0.2.0-rc.2 on Windows**. Independent release numbering starts at `0.1.0`. The complete flow requires the plugin and the native DSH bridge; the plugin package alone cannot enable it. Releases contain the plugin package, Windows installer and source. They do not include DSH's `app.asar`, user profiles or local backups.
+Independent release numbering starts at `0.1.0`. Release packages do not include DSH's `app.asar`, user profiles or local backups.
 
 ## How it works
 
@@ -54,38 +54,25 @@ General Settings lets you browse, save and inspect the effective workspace root.
 
 ![No-project conversation workspace root setting](docs/images/en/root-settings.png)
 
-## Installation and restoration
+## Installation and removal
 
-You need Windows, an installed copy of DSH Desktop 0.2.0-rc.2, and Node.js 22.19 or newer. The Release installer handles both first installation and updates. You do not need to install npm dependencies, compile source, or prepare patches manually.
+You need Windows and the supported DSH Desktop 0.2.1-rc.2 build. 1.0.1 includes the runtime adapter. Installing the plugin requires no Node.js, external installer or native patch.
 
-### 1. Install from the plugin market (recommended)
+### 1. Install from the plugin market
 
-1. Open DSH's plugin market, search for `dsh-codexlike-projectless` (DSH Codexlike Projectless), and install it. Use the desktop profile you actually run.
-2. If the old `dsh-projectless-session` plugin is installed, disable it to avoid conflicts.
-3. Finish installation in the market, then restart DSH.
+1. Search for `dsh-codexlike-projectless` in DSH's plugin market and install version 1.0.1.
+2. Quit and reopen the entire DSH application normally.
+3. Choose and save a workspace root under Settings → General → No-project conversations.
 
-This installs the plugin package directly through the market. For full functionality, the current version also requires a matching native bridge; see the separate setup section below if it has not been installed. The market package does not install the native bridge automatically.
+### 2. Import the release package
 
-### 2. Direct installation
+1. Download [dsh-codexlike-projectless-1.0.1.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.1/dsh-codexlike-projectless-1.0.1.tgz).
+2. Import it through the plugin market or official plugin manager, then quit and reopen DSH normally.
+3. Set a workspace root under Settings → General → No-project conversations.
 
-1. Download `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) and extract it to a local directory. Run it from the extracted directory.
-2. Fully quit DSH, including its tray process. If `dsh-projectless-session` is installed, disable it in DSH first.
-3. Double-click `Install.cmd`. The installer looks for the DSH installation directory and asks for a path if it finds none or more than one.
-4. After "Installed / 已安装" appears, reopen DSH. In Settings → General → No-project conversations, choose a workspace root and save it.
+### 3. Build from source
 
-The default profile is `%USERPROFILE%\.dsh\profiles\desktop`. To select another profile or specify the application directory, open PowerShell in the extracted directory and run:
-
-```powershell
-.\install.ps1 -AppDirectory 'E:\DeepSeekHarness' -ProfileDirectory 'C:\Users\your-name\.dsh\profiles\desktop'
-```
-
-The installer reads the original DSH archive, checks its version and patch anchors, generates the native bridge locally, and prepares compatibility patches for `dsh-better-sidebar` and Git Graph 0.4.4 in the selected profile. An unrecognized compatibility file or unsupported Git Graph version stops installation before application or profile writes. First installation also registers the plugin dependency and configuration entry. Existing workspace settings and other plugin configuration remain in place.
-
-The plugin copy, original archive and restore tools live in `dsh-codexlike-projectless-installer` under the selected profile. After installation succeeds, you can delete the downloaded ZIP and extracted directory. Keep the installer directory for updates and restoration. The profile uses a local `link:` dependency pointing to the stored plugin copy. To update, download the new installer ZIP, quit DSH, and run the same entry point.
-
-### 3. Install from source
-
-With Git and Node.js installed, open PowerShell and run:
+Development requires Git and Node.js 22.19 or newer:
 
 ```powershell
 git clone https://github.com/NoProblUm/dsh-codexlike-projectless.git
@@ -93,40 +80,19 @@ cd dsh-codexlike-projectless
 npm ci
 npm run verify
 npm pack --ignore-scripts
-npm run package:installer
 ```
 
-`npm run verify` checks types, runs the plugin and installer tests, and builds the plugin. The remaining commands create the plugin `.tgz` and a complete Windows installer bundle in `output/`.
+Import the resulting `.tgz` as described above. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation details.
 
-Disable the old `dsh-projectless-session` plugin if present, then fully quit DSH, including its tray process. Run `Install.cmd` from `output/dsh-codexlike-projectless-0.1.1-windows-installer/`, or extract the generated ZIP and run it there. After installation succeeds, reopen DSH and choose a workspace root in Settings → General → No-project conversations. For custom application or profile paths, use the same PowerShell options as direct installation. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation details.
+### Migrate a patched 0.x installation
 
-### Native bridge setup for market installations
+Disable the old plugin and restore the original application using its installation record before installing 1.0.1. If the old installer left a local `link:` copy, remove it through the manager first. Old recovery tools may restore other plugin settings from their backup; check the backup and any later changes before using them.
 
-The native bridge modifies DSH's application archive and is separate from installing the plugin through the market. If a matching bridge is already installed, you do not need to repeat this step. Direct installation and source installation above include it.
+### Update and remove
 
-To set it up, download the matching `dsh-codexlike-projectless-0.1.1-windows-installer.zip` from [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases) and extract it. Fully quit DSH, including its tray process, then run `Install.cmd`. For a custom profile, use the PowerShell command under direct installation with the same profile used by the market. After installation succeeds, reopen DSH and choose a workspace root in Settings → General → No-project conversations.
+Use the plugin market or official plugin manager, and quit and reopen DSH after updating. The stock manager may reject an in-place update under HMR with `already-installed`. This known limitation is documented in the [adaptation record](docs/适配-DSH-0.2.1-rc.2.md).
 
-The current installer installs both the bridge and a local plugin copy, replacing the market dependency with a local `link:` dependency. It has no bridge-only mode. Use the installer for subsequent updates, with matching plugin and bridge versions.
-
-### Update an older installation
-
-The old source-based workflow stored backups in `native/backups`. When updating an older patched build, provide that directory to the new installer:
-
-```powershell
-.\install.ps1 -AppDirectory 'E:\DeepSeekHarness' -LegacyBackupDirectory 'old-source-directory\native\backups'
-```
-
-The installer checks the current archive against backup records using SHA-256 and locates a verified original archive. If it cannot verify the backup chain, it stops. You can specify `-OriginalArchive 'original-backup\app.asar'`, but the archive must still match the current installation's backup records. The native bridge targets DSH 0.2.0-rc.2 and needs adaptation after a DSH update.
-
-### Restore the pre-installation state
-
-Installation prints the backup directory and a complete restore command. A failed installation restores the application, plugin and profile to their state before that operation, including removal of a newly registered plugin after a failed first install. To restore manually, fully quit DSH and run the printed command, for example:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\your-name\.dsh\profiles\desktop\dsh-codexlike-projectless-installer\install.ps1' -Restore -BackupDirectory 'backup-directory-printed-by-the-installer'
-```
-
-Restoration replaces profile configuration with the selected backup, including other plugins' configuration. Later edits to those files will be reverted. It leaves conversation history, working directories and the separate workspace-root settings file in place. Removing the `.tgz` through the market does not remove the native bridge; use restoration for that. If you imported the package before running the installer, restoration retains that imported plugin, which you can then uninstall through the market. For legacy backups, use `scripts/restore-native.ps1` from the old source checkout.
+Disabling or removing the plugin releases its runtime changes and preserves created conversations, directories and user output. Save any unsent drafts first.
 
 ### Choose a workspace root
 
@@ -138,7 +104,7 @@ Without a saved override, the root comes from the profile's `dsh-codexlike-proje
 
 The `0.1.1` installer integration tests cover first installation, updates, configuration preservation and rollback using synthetic ASAR archives with actual DSH 0.2.0-rc.2 module code. They do not establish live Desktop installation or restart acceptance. Earlier build checks: [0.1.0 validation](docs/独立初版验证.md).
 
-See the [historical local validation record](docs/本地完整版测试.md) (Chinese). Its versions, logs and screenshots refer to development builds before the rename; they do not establish installation and restart acceptance for `0.1.0`. Drafts support model, preset, permissions and planning mode selection, plus attachments. Tools, tasks and commands that require a real Session or execution directory become available after the first message creates the Session. Draft text and attachments exist only in runtime memory and do not survive refresh, closing or restart. Restart DSH after updating the native bridge; hot replacement of the plugin is not an installation acceptance check.
+See the [historical local validation record](docs/本地完整版测试.md) (Chinese). Its versions, logs and screenshots refer to development builds before the rename; they do not establish installation and restart acceptance for `0.1.0`. Drafts support model, preset, permissions and planning mode selection, plus attachments. Tools, tasks and commands that require a real Session or execution directory become available after the first message creates the Session. Draft text and attachments exist only in runtime memory and do not survive refresh, closing or restart. Quit and reopen DSH normally after installing or updating the plugin.
 
 ## Acknowledgements
 
@@ -148,6 +114,6 @@ The original copyright and MIT license are retained in [LICENSE](LICENSE), with 
 
 ## Releases and development
 
-Source and version downloads are available in [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). The release workflow publishes to GitHub only. Each Release includes a `.tgz` plugin package, a complete `-windows-installer.zip` bundle and `SHA256SUMS`. It does not publish to npm. See CONTRIBUTING.md to build from source.
+Source and version downloads are available in [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). The release workflow publishes to GitHub only. Each Release includes a `.tgz` plugin package and `SHA256SUMS`. It does not publish to npm. See CONTRIBUTING.md to build from source.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation, and [CHANGELOG.md](CHANGELOG.md) for version history. Paths to logs, screenshots and backups in historical validation records describe the evidence from those runs. Apart from the selected screenshots above, those runtime artifacts are excluded from the public repository. Further checks and optimization are tracked through this repository's Issues and future releases.
