@@ -19,6 +19,8 @@ import { createDiagnosticLogger } from './host/diagnostics.ts'
 import { diagnosticErrorCode, diagnosticPayload, noDiagnostics, type DiagnosticSink } from './shared/diagnostics.ts'
 import type { NativeTitleBridge } from './shared/native.ts'
 import { createRootSettings } from './host/settings.ts'
+import { activateHostRuntime } from './host/runtime.ts'
+import type { RuntimeStatus } from './shared/runtime.ts'
 
 /** Host half: provides authenticated DSH endpoints for filesystem provisioning. */
 export const name = 'dsh-codexlike-projectless'
@@ -38,6 +40,7 @@ export interface ProjectlessRuntime {
   nativeTitle?: NativeTitleBridge
   settings?: ReturnType<typeof createRootSettings>
   directoryRoots: Map<string, string>
+  status?: RuntimeStatus
 }
 
 export function createProjectlessRuntime(diagnostics: DiagnosticSink = noDiagnostics, enabled: boolean = false): ProjectlessRuntime {
@@ -82,8 +85,10 @@ export async function dispatchProjectlessEndpoint(
   endpoint: ProjectlessEndpoint,
   payload: unknown,
   runtime: ProjectlessRuntime = createProjectlessRuntime(),
+  signal: AbortSignal = AbortSignal.timeout(60000),
 ): Promise<RpcResult> {
   try {
+    if (endpoint === 'runtime-status') return { ok: true, value: runtime.status ?? { state: 'unsupported', reason: '运行时适配未安装' } }
     const configuredRoot = root
     root = await runtime.settings?.get() ?? root
     if (endpoint === 'save-root') {
@@ -106,7 +111,7 @@ export async function dispatchProjectlessEndpoint(
       if (route === undefined || typeof route.provider !== 'string' || typeof route.model !== 'string') return badRequest('A selected native model is required')
       return { ok: true, value: await runtime.nativeTitle.prepareProjectlessTitle(input.text, {
         provider: route.provider, model: route.model,
-      }, input.sessionId, AbortSignal.timeout(60000)) }
+      }, input.sessionId, signal) }
     }
     if (endpoint === 'create-directory') {
       const input = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}
@@ -194,7 +199,7 @@ export function createProjectlessFetch(root: string, endpoint: ProjectlessEndpoi
     }
     const fields = { rpcId: message.rpcId, endpoint }
     if (endpoint !== 'log-event') runtime.diagnostics('rpc.started', fields)
-    const result = await dispatchProjectlessEndpoint(root, endpoint, message.payload, runtime)
+    const result = await dispatchProjectlessEndpoint(root, endpoint, message.payload, runtime, AbortSignal.any([request.signal, AbortSignal.timeout(60000)]))
     if (endpoint !== 'log-event') {
       runtime.diagnostics(result.ok ? 'rpc.finished' : 'rpc.failed', {
         ...fields,
@@ -213,8 +218,9 @@ export function apply(ctx: Context, config: Config = {}): void {
   })
   const runtime = createProjectlessRuntime(logger.emit, config.debug === true)
   runtime.settings = createRootSettings(root, join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'storages', 'dsh-codexlike-projectless-settings.json'))
-  const title = (ctx as unknown as { sessionTitle?: NativeTitleBridge }).sessionTitle
-  if (typeof title?.prepareProjectlessTitle === 'function') runtime.nativeTitle = title
+  const adapter = activateHostRuntime(ctx)
+  runtime.status = adapter.status
+  if (adapter.title) runtime.nativeTitle = adapter.title
   logger.emit('diagnostics.enabled')
   ctx.effect(() => () => logger.flush(), 'dsh-codexlike-projectless: flush diagnostics')
   for (const endpoint of PROJECTLESS_ENDPOINTS) {

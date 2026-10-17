@@ -3,7 +3,7 @@ import test from 'node:test'
 import { installProjectlessDrafts } from '../src/client/draft.ts'
 import { SELECTION_KEY } from '../src/client/selection.ts'
 
-test('startup preserves saved no-project over native blank restore; history and explicit new share defaults', async () => {
+test('startup preserves no-project; unscoped new stays local and explicit workspace delegates', async () => {
   const storage = new Map([[SELECTION_KEY, JSON.stringify({ kind: 'projectless' })]])
   const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: {
@@ -56,7 +56,7 @@ test('startup preserves saved no-project over native blank restore; history and 
     uiWorkspace: { openSession: open },
     conversation: {}, connection: { rpc: {} },
     remote: {
-      session: { modelCatalog: () => success({ default: { provider: 'fixture', model: 'test' } }) },
+      session: { modelCatalog: () => success({ default: { provider: 'fixture', model: 'test' }, routableProviders: ['fixture'], groups: [{ id: 'fixture', models: [{ id: 'test' }] }] }) },
       agentPresets: { list: () => success({ presets: [] }) },
       permissionPresets: { catalog: () => success({ defaultPreset: 'edit' }) },
     },
@@ -66,7 +66,9 @@ test('startup preserves saved no-project over native blank restore; history and 
   const flush = () => new Promise<void>(resolve => setImmediate(resolve))
   const errors: unknown[] = []
   try {
-    const drafts = installProjectlessDrafts(ctx as never, {} as never, new Set(), () => {}, error => { errors.push(error) })
+    const drafts = installProjectlessDrafts(ctx as never, {} as never, new Set(), () => {}, error => { errors.push(error) }, {
+      admission: () => undefined, beginFirstSend() {},
+    })
     await flush()
     assert.match(current, /^projectless-draft-/)
     assert.deepEqual(JSON.parse(storage.get(SELECTION_KEY)!), { kind: 'projectless' })
@@ -98,8 +100,12 @@ test('startup preserves saved no-project over native blank restore; history and 
     open('history-a')
     handlers.get('projectless/new-session')!()
     await flush()
-    assert.match(current, /^project-draft-/)
+    assert.match(current, /^projectless-draft-/)
     assert.notEqual(current, a)
+    const beforeExplicit = current
+    assert.equal(handlers.get('projectless/new-session')!('a'), undefined)
+    await flush()
+    assert.equal(current, beforeExplicit, 'native workspace flow remains responsible for explicit requests')
     assert.deepEqual(errors, [])
   } finally {
     for (const dispose of disposers.reverse()) dispose()

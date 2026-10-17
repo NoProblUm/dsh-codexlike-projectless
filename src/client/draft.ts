@@ -10,6 +10,10 @@ import type { DiagnosticSink } from '../shared/diagnostics.ts'
 import type { DraftSessions, NativeConversation, PreparedTitle } from '../shared/native.ts'
 
 import { createDraftCache, decodeSelection, SELECTION_KEY, type Selection } from './selection.ts'
+import type { activateClientRuntime } from './runtime.tsx'
+import { classifyNativeAdmission } from './admission.ts'
+import { requireCatalogSelection } from './model.ts'
+import type { ModelCatalog } from '@deepseek-ai/dsh-api-session-controller'
 interface Draft {
   model: { provider: string, model: string, reasoningEffort?: string }
   permission: string
@@ -18,14 +22,16 @@ interface Draft {
   busy: boolean
   uncertain: boolean
   receipt?: ProjectlessSessionReceipt
+  admissionReference?: ReturnType<DraftSessions['retain']>
 }
 
 /** Uses the native browser draft, title provider, controls and submission sink. */
 export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionHost,
-  pending: Set<WorkspaceId>, diagnostics: DiagnosticSink, onError: (error: unknown) => void) {
+  pending: Set<WorkspaceId>, diagnostics: DiagnosticSink, onError: (error: unknown) => void,
+  adapter: Pick<ReturnType<typeof activateClientRuntime>, 'admission' | 'beginFirstSend'>) {
   const sessions = ctx.sessions as DraftSessions
   if (typeof sessions.createProjectlessDraft !== 'function') {
-    throw new Error('This local build requires the DSH 0.2.0-rc.2 native bridge. Run the supplied native installer first.')
+    throw new Error('无项目运行时适配尚未就绪')
   }
   const conversation = ctx.conversation as NativeConversation
   const rpc = ctx.connection.rpc as unknown as ClientConnectionRpc
@@ -34,7 +40,9 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
   const cache = createDraftCache<SessionId>()
   const held = new Map<SessionId, ReturnType<DraftSessions['retain']>>()
   const projectlessSessions = new Set<SessionId>()
+  const detachments = new Map<SessionId, ProjectlessSessionReceipt>()
   let disposed = false
+  const lifetime = new AbortController()
   let initialized = false
   let starting: Promise<SessionId> | undefined
   let selection: Selection
@@ -67,15 +75,16 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
     return result.value
   }
-  const pluginCall = async <T>(endpoint: 'prepare-title' | 'bind-title', payload: unknown): Promise<T> => {
-    const result = await rpc.call(PROJECTLESS_RPC_CHANNEL, projectlessEndpoint(endpoint), payload)
+  const pluginCall = async <T>(endpoint: 'prepare-title' | 'bind-title', payload: unknown, signal?: AbortSignal): Promise<T> => {
+    const result = await rpc.call(PROJECTLESS_RPC_CHANNEL, projectlessEndpoint(endpoint), payload, signal)
     if (!result.ok) throw new Error(result.error.message)
     return result.value as T
   }
   const start = (): Promise<SessionId> => {
     if (starting !== undefined) return starting
     starting = (async () => {
-      const catalog = await nativeCall<{ default: Draft['model'] }>('session', 'modelCatalog')
+      const catalog = await nativeCall<ModelCatalog>('session', 'modelCatalog')
+      requireCatalogSelection(catalog, catalog.default)
       const presets = await nativeCall<{ presets: { id: string, isDefault?: boolean }[] }>('agentPresets', 'list')
       const permissions = await nativeCall<{ defaultPreset: string }>('permissionPresets', 'catalog')
       if (disposed) throw new Error('Projectless plugin unloaded')
@@ -119,17 +128,37 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     return openEditor(undefined, id !== undefined && sessions.list.getSnapshot().byId[id]?.blank === false)
   }
   ctx.on('projectless/select-workspace', workspaceId => openEditor(workspaceId).then(() => {}))
-  ctx.on('projectless/new-session', (workspaceId, currentSessionId) => {
-    const id = currentSessionId ?? currentId()
-    const inherited = id === undefined ? readSelection() : isProjectlessSession(id) ? undefined : workspaceOf(id)
-    const selected = workspaceId ?? inherited
-    const target = selected !== undefined && ctx.workspaces.list.getSnapshot().items.some(item => item.workspaceId === selected) ? selected : undefined
-    void openEditor(target, true).catch(onError)
+  ctx.on('projectless/detach-pending', id => detachments.has(id))
+  ctx.on('projectless/retry-detach', async id => {
+    const receipt = detachments.get(id)
+    if (disposed || receipt === undefined) throw new Error('没有可重试的已接收会话注销操作')
+    await host.delete(receipt.workspaceId)
+    detachments.delete(id)
+    pending.delete(receipt.workspaceId)
+  })
+  ctx.on('projectless/new-session', (workspaceId, _currentSessionId, options) => {
+    if (workspaceId !== undefined) return undefined
+    void openEditor(undefined, true).then(async id => {
+      if (disposed || options === undefined) return
+      const reference = held.get(id)
+      if (reference === undefined) throw new Error('草稿输入作用域不可用')
+      const binding = await reference.ready
+      if (disposed) return
+      if (options.agentPreset !== undefined) {
+        const draft = drafts.get(id)!
+        draft.preset = options.agentPreset
+        sessions.updateProjectlessDraft(id, 'agentPreset', draft.preset)
+      }
+      switch (conversation.input.requestDraftInitialization(binding, options)) {
+        case 'applied': case 'preserved': break
+        case 'blocked': throw new Error('输入已锁定，无法初始化新草稿')
+      }
+    }).catch(onError)
     return true
   })
 
   // Native Gateway supplies validated positional args. Draft identities never reach Host execution.
-  ctx.on('projectless/draft-rpc', (endpoint, args) => {
+  ctx.on('projectless/draft-rpc', async (endpoint, args, signal) => {
     const input = args[0]
     const id = (typeof input === 'string' ? input : typeof input === 'object' && input !== null
       ? (input as { sessionId?: string }).sessionId : undefined) as SessionId | undefined
@@ -142,6 +171,10 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     ])
     if (endpoint === 'session/selectModel') {
       const model = input as Draft['model']
+      const catalog = await nativeCall<ModelCatalog>('session', 'modelCatalog')
+      signal.throwIfAborted()
+      if (disposed) throw new Error('Projectless plugin unloaded')
+      requireCatalogSelection(catalog, model)
       draft.model = { provider: model.provider, model: model.model,
         ...model.reasoningEffort === undefined ? {} : { reasoningEffort: model.reasoningEffort } }
       sessions.updateProjectlessDraft(id, 'modelSelection', { next: draft.model })
@@ -171,6 +204,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
   })
 
   ctx.on('projectless/first-send', (session, text, attachments, mode, signal) => {
+    signal = AbortSignal.any([signal, lifetime.signal])
     const draft = drafts.get(session.sessionId)
     if (draft === undefined) return undefined
     if (draft.busy || draft.uncertain) return Promise.resolve({ kind: 'error', text: '首次发送仍在处理或结果尚未确认，请勿重复发送。' })
@@ -186,9 +220,12 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
         }, { text, attachments, mode, signal }, {
           prepareTitle: async input => {
             signal.throwIfAborted()
+            const catalog = await nativeCall<ModelCatalog>('session', 'modelCatalog')
+            signal.throwIfAborted()
+            requireCatalogSelection(catalog, choice.model)
             return pluginCall<PreparedTitle>('prepare-title', {
               text: input.text || '附件分析', route: choice.model, sessionId: crypto.randomUUID(),
-            })
+            }, signal)
           },
           provisionDirectory: title => requestProjectlessDirectory(rpc, title, undefined, root),
           createSession: async (workspaceId, title) => {
@@ -197,64 +234,80 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
           },
           bindPreparedTitle: async (id, title) => {
             signal.throwIfAborted()
-            await pluginCall('bind-title', { sessionId: id, token: title.token })
+            await pluginCall('bind-title', { sessionId: id, token: title.token }, signal)
             if (choice.preset !== undefined) await nativeCall('agentPresets', 'select', id, choice.preset)
             await nativeCall('session', 'selectModel', { sessionId: id, ...choice.model })
-            await sessions.using(id, { source: 'controllerOperation' }, async reference => {
-              const binding = await reference.ready
-              const permission = await binding.session.command(`/permission ${choice.permission}`)
-              if (!permission.ok) throw new Error(permission.error.message)
-              if (choice.plan) {
-                const plan = await binding.session.command('/plan on')
-                if (!plan.ok) throw new Error(plan.error.message)
-              }
-            })
+            const applyCommand = async (line: string) => {
+              const result = await nativeCall<{ result: { kind: string, text?: string } } | undefined>('commands', 'execute', id, line, [])
+              if (result === undefined) throw new Error(`当前 Agent 预设不支持设置：${line}`)
+              if (result.result.kind !== 'success') throw new Error(result.result.text ?? `设置失败：${line}`)
+            }
+            await applyCommand(`/permission ${choice.permission}`)
+            // Native /plan accepts an optional MESSAGE; "on" is not a flag.
+            if (choice.plan) await applyCommand('/plan')
           },
           send: async (id, input) => sessions.using(id, { source: 'controllerOperation' }, async reference => {
             const binding = await reference.ready
-            const outcome = await conversation.sendSession(binding.session, input.text, input.attachments, input.mode, input.signal)
-            if (outcome.kind === 'success') return 'accepted'
-            if (outcome.remoteError?.code.startsWith('carrier/') || outcome.remoteError?.code.includes('cancel')) return 'unknown'
-            return 'rejected'
+            adapter.beginFirstSend(id)
+            let outcome
+            try { outcome = await conversation.sendSession(binding.session, input.text, input.attachments, input.mode, input.signal) }
+            catch (error) {
+              if (!adapter.admission(id)?.requestId) { onError(error); return 'rejected' }
+              throw error
+            }
+            const admission = adapter.admission(id)
+            return classifyNativeAdmission(admission, outcome)
           }),
           removeDirectory: path => requestRemoveProjectlessDirectory(rpc, path).then(() => {}),
           isCurrentTarget: () => isCurrentSession(sessions.list.getSnapshot(), session.sessionId),
+          signal,
           onError,
         }, registry, pending, diagnostics)
         if (result.acceptance === 'unknown') {
           draft.uncertain = true
           draft.receipt = result.receipt
-          conversation.input.for(reference.binding.ctx).notify('error', `发送结果尚未确认。请查看会话 ${result.receipt.sessionId}，不要重复发送。`)
+          draft.admissionReference = sessions.retain(result.receipt.sessionId, { source: 'controllerOperation' })
+          void draft.admissionReference.ready.then(reconcile).catch(onError)
           reconcile()
-          return { kind: 'success' }
+          return { kind: 'error', text: `发送结果尚未确认。请查看会话 ${result.receipt.sessionId}，不要重复发送。` }
         }
-        if (result.acceptance === 'accepted') releaseDraft(session.sessionId)
+        if (result.acceptance === 'accepted') {
+          if (result.detachmentPending) detachments.set(result.receipt.sessionId, result.receipt)
+          releaseDraft(session.sessionId)
+        }
         return result.acceptance === 'accepted' ? { kind: 'success' } : { kind: 'error' }
       } catch (error) {
         onError(error)
         return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
       } finally {
         draft.busy = false
-        if (!draft.uncertain) conversation.blocks.set(session.sessionId, undefined)
+        if (!disposed && !draft.uncertain) conversation.blocks.set(session.sessionId, undefined)
         reference.release()
       }
     })()
   })
 
   const releaseDraft = (id: SessionId): void => {
+    const draft = drafts.get(id)
+    drafts.delete(id)
     cache.remove(id)
     const reference = held.get(id)
     held.delete(id)
     reference?.release()
-    if (drafts.delete(id)) sessions.discardProjectlessDraft(id)
+    draft?.admissionReference?.release()
+    if (draft) sessions.discardProjectlessDraft(id)
   }
   const reconcile = (): void => {
     for (const [id, draft] of drafts) {
       const receipt = draft.receipt
-      if (!draft.uncertain || receipt === undefined || sessions.list.getSnapshot().byId[receipt.sessionId]?.blank !== false) continue
-      // The durable native summary proves admission; never resend an uncertain prompt.
+      if (!draft.uncertain || receipt === undefined || !adapter.admission(receipt.sessionId)?.observed) continue
+      // Match the native request identity, never another message's nonblank summary.
       delete draft.receipt
-      void host.delete(receipt.workspaceId).then(() => pending.delete(receipt.workspaceId)).catch(onError).finally(() => {
+      void host.delete(receipt.workspaceId).then(() => pending.delete(receipt.workspaceId)).catch(error => {
+        detachments.set(receipt.sessionId, receipt)
+        onError(error)
+      }).finally(() => {
+        if (disposed) return
         draft.uncertain = false
         conversation.blocks.set(id, undefined)
         if (isCurrentSession(sessions.list.getSnapshot(), id)) ctx.uiWorkspace.openSession(receipt.sessionId)
@@ -289,7 +342,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
       if (initialized || sessions.list.getSnapshot().phase !== 'ready' || ctx.workspaces.list.getSnapshot().phase !== 'ready') return
       initialized = true
       const current = currentId()
-      if (current === undefined || sessions.list.getSnapshot().byId[current]?.blank) {
+      if (selection.kind === 'projectless' && (current === undefined || sessions.list.getSnapshot().byId[current]?.blank)) {
         const selected = readSelection()
         const target = selected !== undefined && ctx.workspaces.list.getSnapshot().items.some(item => item.workspaceId === selected) ? selected : undefined
         void openEditor(target, true).catch(onError)
@@ -302,9 +355,10 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
   }, 'projectless: restore the empty project choice')
   ctx.effect(() => () => {
     disposed = true
+    lifetime.abort(new Error('Projectless plugin unloaded'))
     for (const reference of held.values()) reference.release()
     held.clear()
-    for (const id of drafts.keys()) sessions.discardProjectlessDraft(id)
+    for (const [id, draft] of drafts) { draft.admissionReference?.release(); sessions.discardProjectlessDraft(id) }
   }, 'projectless: draft lifetime')
   return { start: switchProjectless, select, switchWorkspace: (id: WorkspaceId) => openEditor(id).then(() => {}), isProjectlessSession }
 }

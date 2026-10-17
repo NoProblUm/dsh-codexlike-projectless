@@ -1,8 +1,61 @@
 # Changelog / 变更日志
 
+
+## 1.0.0 - 2026-10-17
+
+### 简体中文
+
+- 正式发布单一市场包，支持 Windows DSH Desktop 0.2.1-rc.2（构建 332895e0f7c9d4dbfb29729f5eb367fa263ff986）；不需要归档补丁或外部安装器。
+- 保留原生输入框、模型与推理档位、Agent、规划及附件；首次发送才按日期与主题创建工作目录。
+- 使用原生文件注册表和延迟上传，发送前核对所选模型与推理档位；失败保留输入，结果不明时禁止重复首发。
+- 已接收但 Workspace 注销失败时保留会话和产物，支持独立重试注销。
+- 用户于 2026-10-17 确认已重新实测通过并授权正式发布；此前自动化隔离市场更新失败记录仍保留在适配说明中，不记为自动验收通过。
+- 发布流程等待 Linux 与 Windows 检查通过，提供插件 tgz 与 SHA-256 校验文件。
+
+### English
+
+- Stable single-package release for Windows DSH Desktop 0.2.1-rc.2, build 332895e0f7c9d4dbfb29729f5eb367fa263ff986. No archive patch or external installer is required.
+- Preserve native input, model/reasoning selection, Agent, planning and attachments; create the dated topic directory only on first send.
+- Defer native file upload until Session creation, validate the selected model route, preserve failed input and prevent duplicate uncertain submissions.
+- Retain accepted Sessions and output when Workspace detachment fails, with an independent retry.
+- The maintainer confirmed a successful manual retest and authorized this stable release on 2026-10-17. Earlier isolated market-update failures remain documented separately.
+- Require Linux and Windows verification before publishing the plugin tarball and SHA-256 checksums.
+
+## 1.0.0-rc2 — local test candidate (2026-10-17)
+
+- Target only Windows DSH 0.2.1-rc.2, build 332895e0f7c9d4dbfb29729f5eb367fa263ff986; pin DSH development dependencies and engines.dsh.
+- Preserve new-session prompt, clearPreviousDraft and agentPreset through the public input initialization API. Explicit workspaces delegate to native navigation.
+- Replace placeholder file receipts with local pending state and display-only adaptation. Upload through the native service after real Session creation; retain inputs on failure and upload again for a different Session.
+- Verify the exact frozen model route and reasoning effort against the current host catalog; unavailable routes block sending.
+- Keep accepted sessions when temporary Workspace detachment fails, with an independent detach retry. Track wrapper identity and activation generation; avoid duplicate activation.
+- Preserve the frozen rc1 package and source snapshot. No GitHub push, npm publication or daily-profile replacement.
+- Layered evidence and limitations: [DSH rc.2 acceptance](docs/适配-DSH-0.2.1-rc.2.md).
+
 Independent release history for DSH Codexlike Projectless. Historical development validation is retained separately and does not define this project's versions.
 
 本日志记录 DSH Codexlike Projectless 的独立版本；历史开发验证记录单独保留。
+
+## 1.0.0-rc1 - 2026-10-17
+
+### English
+
+- Ship one prebuilt market package with a version-specific in-memory adapter for the verified Windows Desktop 0.2.0-rc.2 build. No archive patch or external installer is part of the new installation path.
+- Keep client-local drafts, the native composer and attachment registry, selected settings, first-send title preparation and Workspace detachment.
+- Install startup navigation interception before connection-dependent work; retain native default-project initialization for an unset choice and prioritize valid history on restore.
+- Reconcile uncertain submission by its native request identity, preserve resources and input on transport failures, and avoid sweeping earlier uncertain operations after reload.
+- Check native command results before sending; use `/plan` without treating `on` as a flag. Preserve wrapper ownership during teardown.
+- Drafts are page-local; closing, refreshing, restarting or disabling does not promise recovery. Old archive installations require an explicit verified restoration before migration.
+- Release assets are the plugin `.tgz` and checksum. Detailed acceptance evidence and remaining limitations are maintained in docs/运行时适配与验收.md.
+
+### 简体中文
+
+- 使用单一预构建市场包，为已验证的 Windows Desktop 0.2.0-rc.2 构建提供内存适配；新安装路径不包含归档补丁或外部安装器。
+- 保留本地草稿、原生输入和附件注册表、所选设置、首发主题准备及 Workspace 注销。
+- 联网业务之前接入启动导航；未保存选择时保留默认项目初始化，启动优先恢复有效历史。
+- 按原生请求标识确认结果不明的提交，保留输入和资源，刷新后不清扫此前不确定的操作。
+- 发送前检查原生命令结果，使用无参数 `/plan`，释放时检查包装归属。
+- 草稿仅在当前页面保留；关闭、刷新、重启或停用后不承诺恢复。旧归档安装必须明确恢复原版后迁移。
+- 发布产物为插件 `.tgz` 和校验文件。详细验收证据及限制见 docs/运行时适配与验收.md。
 
 ## 0.1.1 - 2026-10-04
 

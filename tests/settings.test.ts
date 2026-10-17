@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createRootSettings } from '../src/host/settings.ts'
@@ -15,14 +15,15 @@ test('root override persists, failed validation keeps previous setting, and conf
     const settings = createRootSettings(initial, file)
     assert.equal(await settings.get(), initial)
     await settings.save(next)
-    assert.equal(await settings.get(), next)
-    assert.equal(await createRootSettings(initial, file).get(), next)
+    const canonicalNext = await realpath(next)
+    assert.equal(await settings.get(), canonicalNext)
+    assert.equal(await createRootSettings(initial, file).get(), canonicalNext)
     await assert.rejects(settings.save('relative'), /absolute path/)
     const blocked = join(area, 'file')
     await writeFile(blocked, 'existing file')
     await assert.rejects(settings.save(blocked))
-    assert.equal(await settings.get(), next)
-    assert.equal(JSON.parse(await readFile(file, 'utf8')).root, next)
+    assert.equal(await settings.get(), canonicalNext)
+    assert.equal(JSON.parse(await readFile(file, 'utf8')).root, canonicalNext)
     assert.equal(await settings.accepts(initial), true)
     assert.equal(await settings.accepts(join(area, 'unapproved')), false)
   } finally { await rm(area, { recursive: true, force: true }) }

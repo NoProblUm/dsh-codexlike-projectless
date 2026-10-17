@@ -28,7 +28,10 @@ export type NativeConversation = IConversation & {
 declare module '@deepseek-ai/cordis' {
   interface Events {
     'projectless/label'(): string | undefined
-    'projectless/new-session'(workspaceId?: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId, currentSessionId?: SessionId): true | undefined
+    'projectless/detach-pending'(sessionId: SessionId): boolean | undefined
+    'projectless/retry-detach'(sessionId: SessionId): Promise<void> | undefined
+    'projectless/open-draft'(): Promise<void> | undefined
+    'projectless/new-session'(workspaceId?: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId, currentSessionId?: SessionId, options?: import('@deepseek-ai/dsh-client-ui-workspace/client').StartSessionOptions): true | undefined
     'projectless/select-workspace'(workspaceId: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId): Promise<void> | undefined
     'projectless/is-session'(sessionId: SessionId): boolean | undefined
     'projectless/first-send'(session: SessionFace, text: string, attachmentIds: readonly DraftAttachmentId[], mode: 'queue' | 'steer', signal: AbortSignal): Promise<SubmitOutcome> | undefined

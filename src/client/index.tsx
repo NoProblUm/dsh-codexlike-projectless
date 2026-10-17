@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -28,19 +28,18 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   PROJECTLESS_ENTRY_ID,
-  createAbandonClaim,
   createProjectlessRegistry,
   isProjectlessPath,
   requestProjectlessSettings,
-  requestRemoveProjectlessDirectory,
   resolvePickerSelection,
-  sweepAbandonedProjectlessWorkspaces,
 } from './session.ts'
 import { PROJECTLESS_LOCALE_NS, projectlessLocales } from './locales.ts'
 import { PROJECTLESS_RPC_CHANNEL, projectlessEndpoint } from '../shared/rpc.ts'
 import { diagnosticErrorCode, type DiagnosticSink } from '../shared/diagnostics.ts'
 import { installProjectlessDrafts } from './draft.ts'
 import { ProjectlessSettings } from './settings.tsx'
+import { activateClientRuntime } from './runtime.tsx'
+import type { RuntimeStatus } from '../shared/runtime.ts'
 
 const PACKAGE_ID = 'dsh-codexlike-projectless'
 export { createAndSendProjectlessSession } from './first-prompt.ts'
@@ -219,39 +218,15 @@ function ProjectlessWorkspacePicker({
   )
 }
 
-function ProjectlessEntry({ start, t }: PropsLocale<typeof PROJECTLESS_LOCALE_NS> & { start(): void }) {
-  const ref = useRef<HTMLButtonElement>(null)
-  useLayoutEffect(() => {
-    const entry = ref.current!
-    const group = entry.closest<HTMLElement>('.dsh-projectless-chip-group')!
-    const folder = group.querySelector<SVGElement>('.dsh-projectless-folder')!
-    const align = () => {
-      const parent = group.getBoundingClientRect()
-      const icon = folder.getBoundingClientRect()
-      entry.style.left = `${icon.left - parent.left}px`
-      entry.style.top = `${icon.top - parent.top}px`
-    }
-    align()
-    const observer = new ResizeObserver(align)
-    observer.observe(group)
-    observer.observe(folder)
-    return () => { observer.disconnect() }
-  }, [])
-  return (
-    <button ref={ref} type="button" onClick={event => { event.stopPropagation(); start() }}
-      title={t('entry.new')} aria-label={t('entry.new')} className="dsh-projectless-entry">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-        <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
-      </svg>
-    </button>
-  )
-}
-
 function installStyles(): () => void {
   const style = document.createElement('style')
   style.dataset.plugin = PACKAGE_ID
   style.textContent = `
     .dsh-projectless-chip-group { display: inline-flex; align-items: center; position: relative; }
+    [data-projectless-unified] [class*="heroWorkspaceRow"] { display: none; }
+    .dsh-projectless-unified-control { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; }
+    .dsh-projectless-unified-control button { color: inherit; background: transparent; border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+    .dsh-projectless-unified-control .dsh-projectless-entry { left: 8px; top: 4px; }
     .dsh-projectless-chip-group button.dsh-projectless-entry { position: absolute; z-index: 1; width: 16px !important; height: 16px !important;
       min-width: 16px !important; min-height: 16px !important; padding: 0 !important;
       display: inline-flex; align-items: center; justify-content: center; border: 0 !important; border-radius: 4px !important;
@@ -316,7 +291,7 @@ function mirrorDirectoryFlow(slots: SlotRegistry): () => void {
 }
 
 export const name = PACKAGE_ID
-export const inject = ['connection', 'locale', 'slots', 'sessions', 'workspaces', 'uiWorkspace', 'conversation', 'remote', 'remote.session', 'remote.agentPresets', 'remote.permissionPresets']
+export const inject = ['connection', 'locale', 'slots', 'sessions', 'workspaces', 'uiWorkspace', 'conversation', 'remote']
 
 /**
  * DSH 0.2 split the old combined Workspace face: registrations live on
@@ -343,15 +318,40 @@ function projectlessHost(ctx: Context) {
 
 /** Install a priority -1 picker; DSH's built-in priority 0 picker remains the automatic fallback. */
 export function apply(ctx: Context): void {
-  const { host, sessions } = projectlessHost(ctx)
   ctx.effect(installStyles, `${PACKAGE_ID}: styles`)
   ctx.effect(
     () => ctx.locale.register(PROJECTLESS_LOCALE_NS, projectlessLocales),
     `${PACKAGE_ID}: dictionaries`,
   )
+  const adapter = activateClientRuntime(ctx)
+  const rpc = ctx.connection.rpc as unknown as ClientConnectionRpc
+  ctx.effect(() => (ctx.slots.register.bind(ctx.slots) as unknown as LooseRegister)({
+    name: 'settings.general.item', id: PACKAGE_ID, order: 0,
+    locale: PROJECTLESS_LOCALE_NS,
+    inject: () => ({ rpc, browse: () => ctx.uiWorkspace.pickDirectory(), adapter }),
+  }, RuntimeSettings), `${PACKAGE_ID}: settings and runtime status`)
+  // Do not return an RPC promise to the initial loader: transport starts after it.
+  ctx.inject(['remote.session', 'remote.agentPresets', 'remote.permissionPresets', 'remote.commands'], scope => {
+    let active = true
+    scope.effect(() => () => { active = false })
+    void rpc.call(PROJECTLESS_RPC_CHANNEL, projectlessEndpoint('runtime-status'), {}).then(result => {
+      if (!active) return
+      if (!result.ok) throw new Error(result.error.message)
+      if (adapter.confirm(result.value as RuntimeStatus)) installBusiness(scope, adapter)
+    }).catch(error => { if (active) adapter.fail(String(error)) })
+  })
+}
+
+function RuntimeSettings(props: Parameters<typeof ProjectlessSettings>[0] & { adapter: ReturnType<typeof activateClientRuntime> }) {
+  const [status, setStatus] = useState(props.adapter.getStatus)
+  useEffect(() => props.adapter.subscribeStatus(() => setStatus(props.adapter.getStatus())), [props.adapter])
+  return <><p role="status">{status.reason}</p><ProjectlessSettings {...props} /></>
+}
+
+function installBusiness(ctx: Context, adapter: ReturnType<typeof activateClientRuntime>): void {
+  const { host } = projectlessHost(ctx)
   const registry = createProjectlessRegistry()
   const pendingWorkspaceIds = new Set<WorkspaceId>()
-  const claim = createAbandonClaim()
   const rpc = ctx.connection.rpc as unknown as ClientConnectionRpc
   let diagnosticsEnabled = false
   let loggingFailed = false
@@ -368,7 +368,6 @@ export function apply(ctx: Context): void {
     console.error(error)
     diagnostics('client.failed', { code: diagnosticErrorCode(error) })
   }
-  const removeDirectory = (path: string) => requestRemoveProjectlessDirectory(rpc, path)
   const isProjectlessWorkspace = (workspace: WorkspaceView): boolean => (
     pendingWorkspaceIds.has(workspace.workspaceId) || registry.has(workspace.workspaceId) || isProjectlessPath(workspace.path)
   )
@@ -378,39 +377,18 @@ export function apply(ctx: Context): void {
   }
   ctx.effect(() => {
     let disposed = false
-    let stopSweep = (): void => {}
     void requestProjectlessSettings(rpc).then(settings => {
       if (disposed) return
       diagnosticsEnabled = settings.diagnosticsEnabled
-      stopSweep = sweepAbandonedProjectlessWorkspaces(
-        host,
-        sessions,
-        settings.root,
-        removeDirectory,
-        pendingWorkspaceIds,
-        claim,
-        onError,
-        diagnostics,
-      )
     }).catch(onError)
-    return () => {
-      disposed = true
-      stopSweep()
-    }
-  }, `${PACKAGE_ID}: sweep leftover unused workspaces`)
-  const drafts = installProjectlessDrafts(ctx, host, pendingWorkspaceIds, diagnostics, onError)
+    // A previous page may have lost an admission response. Never infer permission
+    // to archive its Sessions merely from an empty-looking workspace.
+    return () => { disposed = true }
+  }, `${PACKAGE_ID}: diagnostics settings`)
+  const drafts = installProjectlessDrafts(ctx, host, pendingWorkspaceIds, diagnostics, onError, adapter)
   ctx.on('projectless/is-session', drafts.isProjectlessSession)
   ctx.on('projectless/label', () => ctx.locale.bind(PROJECTLESS_LOCALE_NS)('picker.projectless'))
-  ctx.slots.inject('dsh-codexlike-projectless.entry', () => ctx.slots.register({
-    name: 'dsh-codexlike-projectless.entry',
-    locale: PROJECTLESS_LOCALE_NS,
-    inject: () => ({ start: () => { void drafts.start().catch(onError) } }),
-  }, ProjectlessEntry))
-  ctx.effect(() => (ctx.slots.register.bind(ctx.slots) as unknown as LooseRegister)({
-    name: 'settings.general.item', id: 'dsh-codexlike-projectless', order: 0,
-    locale: PROJECTLESS_LOCALE_NS,
-    inject: () => ({ rpc, browse: () => ctx.uiWorkspace.pickDirectory() }),
-  }, ProjectlessSettings), `${PACKAGE_ID}: root settings`)
+  ctx.on('projectless/open-draft', () => drafts.start().then(() => {}))
   const actions = (): PickerActions => ({
     createWorkspace: input => host.create(input),
     selectWorkspace: drafts.switchWorkspace,

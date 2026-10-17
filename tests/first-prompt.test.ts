@@ -50,6 +50,36 @@ test('prepares title before directory, binds it once, sends once, then detaches 
   assert.equal(JSON.stringify(fixture.events).includes('PRIVATE'), false)
 })
 
+test('cancellation after title does not allocate a directory or create resources', async () => {
+  const fixture = scenario()
+  const controller = new AbortController()
+  const services = { ...fixture.services, signal: controller.signal,
+    async prepareTitle(input: typeof fixture.input) {
+      const title = await fixture.services.prepareTitle(input)
+      controller.abort(new Error('cancelled during preparation'))
+      return title
+    },
+  }
+  await assert.rejects(createAndSendProjectlessSession(fixture.host, fixture.sessions, fixture.input,
+    services, createProjectlessRegistry(), fixture.pending), /cancelled during preparation/)
+  assert.deepEqual(fixture.operations, ['title'])
+})
+
+test('cancellation after allocation removes only the newly allocated unused directory', async () => {
+  const fixture = scenario()
+  const controller = new AbortController()
+  const services = { ...fixture.services, signal: controller.signal,
+    async provisionDirectory(title: string) {
+      const path = await fixture.services.provisionDirectory(title)
+      controller.abort(new Error('cancelled after allocation'))
+      return path
+    },
+  }
+  await assert.rejects(createAndSendProjectlessSession(fixture.host, fixture.sessions, fixture.input,
+    services, createProjectlessRegistry(), fixture.pending), /cancelled after allocation/)
+  assert.deepEqual(fixture.operations, ['title', 'directory', 'remove-directory'])
+})
+
 test('background preparation finishes without taking the current view', async () => {
   const fixture = scenario()
   fixture.services.isCurrentTarget = () => false
@@ -114,7 +144,10 @@ test('binding failure rolls back an unused session before the first prompt', asy
 test('detach failure after admission preserves success and never removes output or repeats sending', async () => {
   const fixture = scenario()
   fixture.host.delete = async () => { throw new Error('unregister failed') }
-  assert.equal((await fixture.run()).acceptance, 'accepted')
+  const result = await fixture.run()
+  assert.equal(result.acceptance, 'accepted')
+  assert.equal(result.detachmentPending, true)
+  assert.equal(fixture.pending.has(fixture.workspaceId), true)
   assert.equal(fixture.errors.length, 1)
   assert.equal(fixture.operations.includes('remove-directory'), false)
   assert.equal(fixture.operations.filter(op => op === 'send').length, 1)
