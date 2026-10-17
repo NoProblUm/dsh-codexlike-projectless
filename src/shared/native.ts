@@ -31,6 +31,7 @@ declare module '@deepseek-ai/cordis' {
     'projectless/detach-pending'(sessionId: SessionId): boolean | undefined
     'projectless/retry-detach'(sessionId: SessionId): Promise<void> | undefined
     'projectless/open-draft'(): Promise<void> | undefined
+    'projectless/restore-draft'(): Promise<void> | undefined
     'projectless/new-session'(workspaceId?: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId, currentSessionId?: SessionId, options?: import('@deepseek-ai/dsh-client-ui-workspace/client').StartSessionOptions): true | undefined
     'projectless/select-workspace'(workspaceId: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceId): Promise<void> | undefined
     'projectless/is-session'(sessionId: SessionId): boolean | undefined

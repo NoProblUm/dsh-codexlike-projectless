@@ -1,5 +1,5 @@
 export const ADAPTER_ID = 'desktop-0.2.1-rc.2-332895e0-runtime-2'
-export const RUNTIME_PACKAGE_VERSION = '1.0.1'
+export const RUNTIME_PACKAGE_VERSION = '1.1.0'
 export const TARGET_BUILD = '332895e0f7c9d4dbfb29729f5eb367fa263ff986'
 export type RuntimeState = 'checking' | 'restart-required' | 'ready' | 'unsupported' | 'conflict' | 'failed'
 export interface RuntimeStatus {

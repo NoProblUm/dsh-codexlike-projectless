@@ -4,6 +4,7 @@ import { build } from 'esbuild'
 const id = 'dsh-codexlike-projectless'
 const external = [
   'react',
+  'react-dom',
   'react/jsx-runtime',
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-connection/client',

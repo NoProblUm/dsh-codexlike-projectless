@@ -8,11 +8,11 @@ DSH Codexlike Projectless is independently maintained with its own release histo
 
 ## Current version and 0.x
 
-The current version is **1.0.1**, for Windows DSH Desktop **0.2.1-rc.2** (build `332895e0f7c9d4dbfb29729f5eb367fa263ff986`). Install the [1.0.1 plugin package](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.1/dsh-codexlike-projectless-1.0.1.tgz) through the plugin market or official plugin manager, then quit and reopen DSH.
+The current version is **1.1.0**, for Windows DSH Desktop **0.2.1-rc.2** (build `332895e0f7c9d4dbfb29729f5eb367fa263ff986`). Install the [1.1.0 plugin package](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.1.0/dsh-codexlike-projectless-1.1.0.tgz) through the plugin market or official plugin manager, then quit and reopen DSH.
 
 0.x required a separate native patch. 1.x includes the runtime adapter in the plugin package and needs no external installer or archive changes. If you installed an old patch, restore the original application using its installation record before installing this version. No-project drafts and dated topic directories on first send work as before.
 
-The original screenshots remain below. See [CHANGELOG](CHANGELOG.md) for release details.
+Historical screenshots remain below and do not show the exact 1.1.0 icons or layout. See [CHANGELOG](CHANGELOG.md) for release details.
 
 Independent release numbering starts at `0.1.0`. Release packages do not include DSH's `app.asar`, user profiles or local backups.
 
@@ -24,7 +24,11 @@ Independent release numbering starts at `0.1.0`. Release packages do not include
 4. The message goes through the native send path with its selected model, Agent preset, permissions, planning mode and attachments.
 5. After acceptance, the temporary Workspace registration is removed. The conversation, directory, cwd and history remain, and the conversation appears under Ungrouped.
 
-A circular × appears to the left of the project button above the composer on hover or keyboard focus. In an unsent editor, it switches to no-project mode and restores that draft. In a project conversation that has already sent a message, it opens a new blank no-project editor while preserving the original conversation's project and cwd. The × is hidden in no-project mode; the picker also provides a "No project" entry.
+Unsent editors retain the native project button, Agent mode row, composer and original icons. On hover or keyboard focus, the native close icon replaces the folder icon in place. It is an independent focusable button and leaves surrounding controls in place. Activating it switches to no-project mode and restores that draft. No-project mode hides the close action; the picker also provides a "No project" entry. Sent conversations retain their native layout without an extra project bar, preserving their project, cwd and messages.
+
+The new-conversation bubble in the Ungrouped sidebar row restores the most recent still-unsent no-project draft, creating one only when none exists. It restores text, attachments, model, permissions, Agent preset and planning settings. Repeated clicks, Enter and Space do not create duplicate drafts or collapse the group. This restore behavior applies only to that sidebar action.
+
+Git Graph **0.4.6** is supported: project chats retain its optional automatic worktree isolation, while explicitly projectless requests open a local draft before any Git routing. Both load orders preserve each operation's initial prompt, draft-clearing policy and Agent options. Compatibility is limited to the stated versions; unknown navigation wrappers still report a conflict. The compatibility code ships with this plugin and does not modify Git Graph files or the application archive.
 
 New Conversation and the shortcut open a blank editor using the current default project selection. Opening history updates that selection. A no-project conversation retains its no-project identity after its temporary Workspace is detached. The selection survives restarts; a deleted project falls back to no-project mode.
 
@@ -44,7 +48,7 @@ The sidebar shows three example projects and their conversations, while the curr
 
 ### Switch from a project to no-project mode
 
-Hovering over the project button reveals a circular × that opens the no-project editor. The selected project is "Example: Study notes", with other projects and ungrouped conversations visible in the sidebar.
+This historical screenshot shows the older circular ×; 1.1.0 uses the host's native close icon to open the no-project editor. The selected project is "Example: Study notes", with other projects and ungrouped conversations visible in the sidebar.
 
 ![Circular clear action visible inside the workspace picker on hover](docs/images/en/project-clear.png)
 
@@ -56,17 +60,17 @@ General Settings lets you browse, save and inspect the effective workspace root.
 
 ## Installation and removal
 
-You need Windows and the supported DSH Desktop 0.2.1-rc.2 build. 1.0.1 includes the runtime adapter. Installing the plugin requires no Node.js, external installer or native patch.
+You need Windows and the supported DSH Desktop 0.2.1-rc.2 build. 1.1.0 includes the runtime adapter. Installing the plugin requires no Node.js, external installer or native patch.
 
 ### 1. Install from the plugin market
 
-1. Search for `dsh-codexlike-projectless` in DSH's plugin market and install version 1.0.1.
+1. Search for `dsh-codexlike-projectless` in DSH's plugin market and install version 1.1.0.
 2. Quit and reopen the entire DSH application normally.
 3. Choose and save a workspace root under Settings → General → No-project conversations.
 
 ### 2. Import the release package
 
-1. Download [dsh-codexlike-projectless-1.0.1.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.0.1/dsh-codexlike-projectless-1.0.1.tgz).
+1. Download [dsh-codexlike-projectless-1.1.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.1.0/dsh-codexlike-projectless-1.1.0.tgz).
 2. Import it through the plugin market or official plugin manager, then quit and reopen DSH normally.
 3. Set a workspace root under Settings → General → No-project conversations.
 
@@ -86,7 +90,7 @@ Import the resulting `.tgz` as described above. See [CONTRIBUTING.md](CONTRIBUTI
 
 ### Migrate a patched 0.x installation
 
-Disable the old plugin and restore the original application using its installation record before installing 1.0.1. If the old installer left a local `link:` copy, remove it through the manager first. Old recovery tools may restore other plugin settings from their backup; check the backup and any later changes before using them.
+Disable the old plugin and restore the original application using its installation record before installing 1.1.0. If the old installer left a local `link:` copy, remove it through the manager first. Old recovery tools may restore other plugin settings from their backup; check the backup and any later changes before using them.
 
 ### Update and remove
 
@@ -102,6 +106,10 @@ Without a saved override, the root comes from the profile's `dsh-codexlike-proje
 
 ## Validation and limitations
 
+Version 1.1.0 passes type checking, 78 tests and the build. Candidate rc.3 was exercised in the original target Desktop with both load orders, real worktrees, sidebar restoration, first-send failure handling and 48 plugin-on/off native layout and icon comparisons. The stable release retains that implementation with version and release-documentation updates. Desktop evidence uses isolated profiles and a keyless model fixture; it does not establish external model-service acceptance. See the [1.1.0 acceptance report](docs/1.1.0-验收报告.md) (Chinese).
+
+Known limitations: at 800-pixel window width and 150% zoom, native content clips identically with the plugin on and off; this release does not change host zoom rules. An in-place upgrade of an earlier candidate failed with `EPERM` in the official manager. Fresh-profile installation and normal restart passed for the final candidate, which does not establish successful in-place upgrades. Save drafts before updating; retain the existing installation and use the official manager to resolve upgrade failures rather than overwriting live files.
+
 The `0.1.1` installer integration tests cover first installation, updates, configuration preservation and rollback using synthetic ASAR archives with actual DSH 0.2.0-rc.2 module code. They do not establish live Desktop installation or restart acceptance. Earlier build checks: [0.1.0 validation](docs/独立初版验证.md).
 
 See the [historical local validation record](docs/本地完整版测试.md) (Chinese). Its versions, logs and screenshots refer to development builds before the rename; they do not establish installation and restart acceptance for `0.1.0`. Drafts support model, preset, permissions and planning mode selection, plus attachments. Tools, tasks and commands that require a real Session or execution directory become available after the first message creates the Session. Draft text and attachments exist only in runtime memory and do not survive refresh, closing or restart. Quit and reopen DSH normally after installing or updating the plugin.
@@ -110,10 +118,12 @@ See the [historical local validation record](docs/本地完整版测试.md) (Chi
 
 Special thanks to [Jarvis Luk](https://github.com/jarvisluk) and the original [jarvisluk/dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session) repository, the main reference and source foundation for this project. This project includes code derived from that MIT-licensed repository and builds on its projectless conversation work with the Codex-like workflow described above.
 
+The Git Graph 0.4.6 compatibility route includes Apache-2.0 upstream code. Attribution, modifications and license details are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 The original copyright and MIT license are retained in [LICENSE](LICENSE), with source attribution in [NOTICE](NOTICE). This repository is maintained independently by NoProblUm.
 
 ## Releases and development
 
-Source and version downloads are available in [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). The release workflow publishes to GitHub only. Each Release includes a `.tgz` plugin package and `SHA256SUMS`. It does not publish to npm. See CONTRIBUTING.md to build from source.
+Source and version downloads are available in [GitHub Releases](https://github.com/NoProblUm/dsh-codexlike-projectless/releases). The release workflow publishes a GitHub Release with a `.tgz` plugin package and `SHA256SUMS`, then publishes the same package to npm using the configured trusted publisher. Stable releases use the `latest` tag. If npm publication fails, the GitHub Release may already exist; rerunning the workflow skips existing versions. See CONTRIBUTING.md to build from source.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and validation, and [CHANGELOG.md](CHANGELOG.md) for version history. Paths to logs, screenshots and backups in historical validation records describe the evidence from those runs. Apart from the selected screenshots above, those runtime artifacts are excluded from the public repository. Further checks and optimization are tracked through this repository's Issues and future releases.

@@ -222,20 +222,15 @@ function installStyles(): () => void {
   const style = document.createElement('style')
   style.dataset.plugin = PACKAGE_ID
   style.textContent = `
-    .dsh-projectless-chip-group { display: inline-flex; align-items: center; position: relative; }
-    [data-projectless-unified] [class*="heroWorkspaceRow"] { display: none; }
-    .dsh-projectless-unified-control { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; }
-    .dsh-projectless-unified-control button { color: inherit; background: transparent; border: 0; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
-    .dsh-projectless-unified-control .dsh-projectless-entry { left: 8px; top: 4px; }
-    .dsh-projectless-chip-group button.dsh-projectless-entry { position: absolute; z-index: 1; width: 16px !important; height: 16px !important;
-      min-width: 16px !important; min-height: 16px !important; padding: 0 !important;
-      display: inline-flex; align-items: center; justify-content: center; border: 0 !important; border-radius: 4px !important;
-      background: var(--dsw-alias-interactive-bg-hover, #e2e4e7) !important; color: var(--dsw-alias-label-primary, inherit) !important;
-      line-height: 1; cursor: pointer; opacity: 0 !important; pointer-events: none !important; }
-    .dsh-projectless-chip-group:hover .dsh-projectless-entry,
-    .dsh-projectless-chip-group .dsh-projectless-entry:focus { opacity: 1 !important; pointer-events: auto !important; }
-    .dsh-projectless-chip-group:has(.dsh-projectless-entry):hover .dsh-projectless-folder,
-    .dsh-projectless-chip-group:has(.dsh-projectless-entry:focus) .dsh-projectless-folder { visibility: hidden; }
+    .dsh-projectless-entry { position: absolute; z-index: 1; width: 16px; height: 16px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px;
+      background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary);
+      font: inherit; line-height: 1; cursor: pointer; opacity: 0; pointer-events: none; }
+    [data-projectless-chip]:hover ~ .dsh-projectless-entry,
+    [data-projectless-chip]:focus-visible ~ .dsh-projectless-entry,
+    .dsh-projectless-entry:hover, .dsh-projectless-entry:focus-visible { opacity: 1; pointer-events: auto; }
+    [data-projectless-chip]:is(:hover, :focus-visible) > svg,
+    :has(> .dsh-projectless-entry:is(:hover, :focus-visible)) > [data-projectless-chip] > svg { visibility: hidden; }
     .dsh-projectless-settings { display: grid; gap: 8px; padding: 12px 0; }
     .dsh-projectless-settings-controls { display: flex; gap: 8px; }
     .dsh-projectless-settings input { flex: 1; min-width: 0; padding: 8px; color: inherit;
@@ -389,6 +384,7 @@ function installBusiness(ctx: Context, adapter: ReturnType<typeof activateClient
   ctx.on('projectless/is-session', drafts.isProjectlessSession)
   ctx.on('projectless/label', () => ctx.locale.bind(PROJECTLESS_LOCALE_NS)('picker.projectless'))
   ctx.on('projectless/open-draft', () => drafts.start().then(() => {}))
+  ctx.on('projectless/restore-draft', () => drafts.restore().then(() => {}))
   const actions = (): PickerActions => ({
     createWorkspace: input => host.create(input),
     selectWorkspace: drafts.switchWorkspace,

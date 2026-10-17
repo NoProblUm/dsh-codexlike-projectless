@@ -1,9 +1,11 @@
+import { createPortal } from 'react-dom'
+import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement, Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import { IconFolderCloseRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, RUNTIME_WRAPPER, originalInstance, wrapRuntimeMethod, type RuntimeStatus } from '../shared/runtime.ts'
 import { decodeSelection, SELECTION_KEY } from './selection.ts'
 import { matchesNativeSubmission, type NativeAdmission } from './admission.ts'
+import { installSessionDispatch, gitGraphTransport } from './session-dispatch.ts'
 
 interface ClientRuntime {
   getStatus(): RuntimeStatus
@@ -74,7 +76,6 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
     || typeof value === 'object' && value !== null && Object.values(value).some(localIdentity)
   try {
     if (sessions.createProjectlessDraft || /projectless\/new-session/.test(Function.prototype.toString.call(navigation.startSession))) throw new Error('检测到旧归档补丁；请先明确恢复原版后再启用')
-    if (!Function.prototype.toString.call(navigation.startSession).includes('const workspace = this.workspaces.list.getSnapshot()')) throw new Error('新建会话方法已被其他插件接管；当前组合未通过兼容验证')
     if (!core || typeof core.factory !== 'function' || !conversation.input) throw new Error('原生视图或输入服务不匹配')
     wrap(navigation, 'restoreSelection', (original, receiver, args) => {
       restored = true
@@ -86,12 +87,23 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       if (active && !saved.subagentAddress && (!history || history.blank) && choice.kind === 'project' && args[0].items.some((item: any) => item.workspaceId === choice.workspaceId)) return receiver.openWorkspace(choice.workspaceId)
       return original.apply(receiver, args)
     })
-    wrap(navigation, 'startSession', (original, receiver, args) => {
-      if (!active || !business) return original.apply(receiver, args)
+    const dispatch = installSessionDispatch(navigation, originalInstance(ctx.workspaces), gitGraphTransport(), (workspaceId, options) => {
+      if (!active || !business) return false
       requireActive()
-      if (ctx.bail('projectless/new-session', args[0], receiver.mainReference?.sessionId, args[1]) === true) return
-      return original.apply(receiver, args)
+      return ctx.bail('projectless/new-session', workspaceId as any, navigation.mainReference?.sessionId, options) === true
+    }, {
+      async version() {
+        const service = (ctx as any).get('remote.pluginManager')
+        if (!service) throw new Error('无法读取 Git Graph 插件版本，拒绝未验证组合')
+        const result = await service.listBundles()
+        if (!result.ok) throw new Error('无法确认 Git Graph 版本：' + result.error.message)
+        const graph = result.value.find((item: any) => item.name === '@linxin666/dsh-client-ui-git-graph')
+        if (!graph?.enabled || graph.version !== '0.4.6') throw new Error('仅验证 Git Graph 0.4.6；当前版本：' + (graph?.version ?? '未知'))
+      },
+      conflict(reason) { business = false; updateStatus('conflict', reason) },
     })
+    disposers.push(dispatch.dispose)
+    ownership.push(dispatch.owns)
     wrap(navigation, 'openWorkspace', (original, receiver, args) => {
       if (active && business && args[1] !== undefined && args[2] === undefined && isDraft(receiver.mainReference?.sessionId)) {
         requireActive()
@@ -282,23 +294,53 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
     })
     inputDefinition.component = AdaptedInput
     core.markDirty('conversation.composer.bar', core.record('conversation.composer.bar'))
+    const sidebar = core.entries('sidebar.workspaces')[0]
+    if (!sidebar || core.entries('sidebar.workspaces').length !== 1) throw new Error('原生侧栏组件边界不匹配')
+    const OriginalSidebar = sidebar.component
+    function AdaptedSidebar(props: any) {
+      return createElement('div', { style: { display: 'contents' }, onClickCapture: (event: any) => {
+        if (!active || !business) return
+        const button = event.target.closest?.('button[type="button"]')
+        const row = button?.closest('[data-row-key="workspace:"]')
+        if (!row || !event.currentTarget.contains(row) || button.getAttribute('aria-label') !== props.t('actions.newSession.aria', { name: props.t('group.ungrouped') })) return
+        requireActive()
+        event.preventDefault()
+        event.stopPropagation()
+        void ctx.bail('projectless/restore-draft')
+      } }, createElement(OriginalSidebar, props))
+    }
+    sidebar.component = AdaptedSidebar
+    core.markDirty('sidebar.workspaces', core.record('sidebar.workspaces'))
+    disposers.push(() => {
+      if (sidebar.component !== AdaptedSidebar) return
+      sidebar.component = OriginalSidebar
+      core.markDirty('sidebar.workspaces', core.record('sidebar.workspaces'))
+    })
     const installFactory = () => {
       const definition = core.factory('conversation.content')
       if (!definition) return
       const Original = definition.component
       function AdaptedContent(props: any) {
         const renderSlot = (name: string, owner: any, ...rest: any[]) => {
-          if (name !== 'conversation.composer.bar' || !active || !business) return props.renderSlot(name, owner, ...rest)
+          if (!active || !business) return props.renderSlot(name, owner, ...rest)
+          if (name === 'conversation.hero.workspace') return createElement(Fragment, null,
+            props.renderSlot(name, owner, ...rest),
+            createElement(NativeProjectExtras, { owner, ctx, requireActive }))
+          if (name !== 'conversation.composer.bar') return props.renderSlot(name, owner, ...rest)
           let input = owner
           if (isDraft(props.sessionId)) {
             const block = conversation.blocks.storeFor(props.sessionId).getSnapshot()
             input = { ...owner, disabled: false, placeholder: block?.reason ?? props.t('placeholder.hero'), ...block ? { blocked: block } : {} }
           }
           return createElement(Fragment, null,
-            createElement(ProjectControl, { props, ctx, navigation, conversation, status, requireActive }),
-            props.renderSlot(name, input, ...rest))
+            props.renderSlot(name, input, ...rest),
+            createElement(DetachRetry, { sessionId: props.sessionId, ctx, requireActive }))
         }
-        return createElement(Original, { ...props, renderSlot })
+        const workspaces = props.useWorkspaces((state: any) => state)
+        const project = workspaces.items.find((item: any) => item.sessionIds.includes(props.sessionId))
+        const t = (key: string, ...args: any[]) => key === 'hero.chooseWorkspace' && !project && active && business
+          ? ctx.bail('projectless/label') ?? '无项目' : props.t(key, ...args)
+        return createElement(Original, { ...props, renderSlot, t })
       }
       Object.defineProperty(AdaptedContent, RUNTIME_WRAPPER, { value: { target: definition, original: Original, installed: AdaptedContent, generation } })
       disposers.push(() => {
@@ -359,35 +401,48 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
   return runtime
 }
 
-function ProjectControl({ props, ctx, navigation, status, requireActive }: any) {
-  const anchor = useRef<HTMLButtonElement>(null)
-  const [open, setOpen] = useState(false)
+/** Supplement the native chip in place, without moving its DOM or layout seat. */
+function NativeProjectExtras({ owner, ctx, requireActive }: any) {
+  const [seat, setSeat] = useState<HTMLElement | null>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  useLayoutEffect(() => {
+    const anchor = owner.anchorRef?.current as HTMLButtonElement | undefined
+    if (!anchor || owner.selectedId === undefined) { setSeat(null); return }
+    const row = anchor.parentElement!
+    const position = row.style.position
+    row.style.position = 'relative'
+    anchor.dataset.projectlessChip = ''
+    setSeat(row)
+    const place = () => {
+      const icon = (anchor.querySelector('svg') ?? anchor).getBoundingClientRect()
+      const bounds = row.getBoundingClientRect()
+      if (!button.current) return
+      button.current.style.left = (icon.left - bounds.left) + 'px'
+      button.current.style.top = (icon.top - bounds.top) + 'px'
+    }
+    const observer = new ResizeObserver(place)
+    observer.observe(row)
+    return () => { observer.disconnect(); delete anchor.dataset.projectlessChip; row.style.position = position }
+  }, [owner.anchorRef, owner.selectedId])
+  return seat && owner.selectedId !== undefined ? createPortal(
+    <button type="button" ref={button} className="dsh-projectless-entry" aria-label="切换到无项目" title="切换到无项目"
+      onClick={event => { event.stopPropagation(); requireActive(); void ctx.bail('projectless/open-draft') }}>
+      <IconCloseOutlineRegular size={16} />
+    </button>, seat) : null
+}
+
+function DetachRetry({ sessionId, ctx, requireActive }: any) {
   const [detached, setDetached] = useState(false)
   const [retrying, setRetrying] = useState(false)
-  const [detachError, setDetachError] = useState('')
-  useLayoutEffect(() => { setDetached(false); setDetachError('') }, [props.sessionId])
-  const workspaces = props.useWorkspaces((state: any) => state)
-  const project = workspaces.items.find((item: any) => item.sessionIds.includes(props.sessionId))
-  const start = () => { requireActive(); void ctx.bail('projectless/open-draft') }
-  useLayoutEffect(() => {
-    const root = anchor.current?.closest('[data-conversation-content]')
-    root?.setAttribute('data-projectless-unified', '')
-    return () => { root?.removeAttribute('data-projectless-unified') }
-  }, [])
-  return <div className="dsh-projectless-unified-control">
-    <span className="dsh-projectless-chip-group">
-      <button type="button" ref={anchor} onClick={() => setOpen(value => !value)} disabled={status.state !== 'ready'}>
-        <span className="dsh-projectless-folder" aria-hidden="true"><IconFolderCloseRegular size={16} /></span> {project?.title ?? ctx.bail('projectless/label') ?? '无项目'} ▾
-      </button>
-      {project && <button type="button" className="dsh-projectless-entry" aria-label="切换到无项目" title="切换到无项目" onClick={start}>×</button>}
-    </span>
-    {props.renderSlot('conversation.hero.agentPreset', {})}
-    {!detached && ctx.bail('projectless/detach-pending', props.sessionId) && <button type="button" disabled={retrying} onClick={() => {
+  const [error, setError] = useState('')
+  useLayoutEffect(() => { setDetached(false); setError('') }, [sessionId])
+  if (detached || !ctx.bail('projectless/detach-pending', sessionId)) return null
+  return <div className="dsh-projectless-detach-retry">
+    <button type="button" disabled={retrying} onClick={() => {
       requireActive()
       setRetrying(true)
-      Promise.resolve(ctx.bail('projectless/retry-detach', props.sessionId)).then(() => setDetached(true), error => setDetachError(String(error))).finally(() => setRetrying(false))
-    }}>重试注销临时工作区</button>}
-    {detachError && <span role="status">{detachError}</span>}
-    {props.renderSlot('conversation.hero.workspace', { open, anchorRef: anchor, selectedId: project?.workspaceId, onClose: () => setOpen(false), onPick: (id: string) => { setOpen(false); void navigation.openWorkspace(id) } })}
+      Promise.resolve(ctx.bail('projectless/retry-detach', sessionId)).then(() => setDetached(true), error => setError(String(error))).finally(() => setRetrying(false))
+    }}>重试注销临时工作区</button>
+    {error && <span role="status">{error}</span>}
   </div>
 }

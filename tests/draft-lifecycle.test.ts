@@ -21,6 +21,8 @@ test('global new inherits current project; projectless stays local and explicit 
   const projects = [{ workspaceId: 'a', sessionIds: ['native-restored', 'history-a'] }]
   let current = 'native-restored'
   let next = 0
+  const initializations = new Map<string, unknown>()
+  const presets = new Map<string, unknown>()
   const snapshot = () => ({ phase: 'ready', ids: Object.keys(rows), byId: rows })
   const publish = () => { for (const listener of listeners) listener() }
   const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
@@ -32,6 +34,7 @@ test('global new inherits current project; projectless stays local and explicit 
       return id
     },
     discardProjectlessDraft(id: string) { delete rows[id] },
+    updateProjectlessDraft(id: string, key: string, value: unknown) { if (key === 'agentPreset') presets.set(id, value) },
     async create({ workspaceId }: { workspaceId: string }) {
       const id = `project-draft-${++next}`
       rows[id] = { blank: true, retainedBy: {} }
@@ -40,7 +43,7 @@ test('global new inherits current project; projectless stays local and explicit 
     },
     retain(id: string) {
       rows[id]!.retainedBy.controllerOperation = (rows[id]!.retainedBy.controllerOperation ?? 0) + 1
-      return { release() { if (rows[id]) rows[id]!.retainedBy.controllerOperation = (rows[id]!.retainedBy.controllerOperation ?? 1) - 1 } }
+      return { ready: Promise.resolve({ id }), release() { if (rows[id]) rows[id]!.retainedBy.controllerOperation = (rows[id]!.retainedBy.controllerOperation ?? 1) - 1 } }
     },
   }
   const open = (id: string) => {
@@ -54,7 +57,7 @@ test('global new inherits current project; projectless stays local and explicit 
     sessions,
     workspaces: { list: { getSnapshot: () => ({ phase: 'ready', items: projects }), subscribe } },
     uiWorkspace: { openSession: open },
-    conversation: {}, connection: { rpc: {} },
+    conversation: { input: { requestDraftInitialization(binding: { id: string }, options: unknown) { initializations.set(binding.id, options); return 'applied' } } }, connection: { rpc: {} },
     remote: {
       session: { modelCatalog: () => success({ default: { provider: 'fixture', model: 'test' }, routableProviders: ['fixture'], groups: [{ id: 'fixture', models: [{ id: 'test' }] }] }) },
       agentPresets: { list: () => success({ presets: [] }) },
@@ -98,6 +101,10 @@ test('global new inherits current project; projectless stays local and explicit 
     assert.deepEqual(projects[0]!.sessionIds, membership, 'switching never changes historical project membership')
     assert.equal(rows['history-a']!.blank, history!.blank)
     open('history-a')
+    const recent = await drafts.restore()
+    assert.equal(current, recent, 'sidebar restores latest local editor from project history')
+    assert.equal(await drafts.restore(), recent, 'repeat sidebar activation keeps the editor')
+    open('history-a')
     const globalOptions = { prompt: 'project prompt', clearPreviousDraft: true, agentPreset: 'standard' }
     assert.equal(handlers.get('projectless/new-session')!(undefined, 'history-a', globalOptions), undefined,
       'global new from a project must delegate to native navigation instead of selecting ungrouped')
@@ -107,6 +114,23 @@ test('global new inherits current project; projectless stays local and explicit 
     assert.equal(handlers.get('projectless/new-session')!('a'), undefined)
     await flush()
     assert.equal(current, beforeExplicit, 'native workspace flow remains responsible for explicit requests')
+    open('history-none')
+    const count = next
+    const one = { prompt: 'one', clearPreviousDraft: true, agentPreset: 'one' }
+    const two = { prompt: 'two', clearPreviousDraft: false, agentPreset: 'two' }
+    handlers.get('projectless/new-session')!(undefined, 'history-none', one)
+    handlers.get('projectless/new-session')!(undefined, 'history-none', two)
+    await flush()
+    assert.equal(next, count + 2, 'two explicit requests retain separate operation identities')
+    assert.deepEqual(initializations.get(`projectless-draft-${count + 1}`), one)
+    assert.deepEqual(initializations.get(`projectless-draft-${count + 2}`), two)
+    assert.equal(presets.get(`projectless-draft-${count + 1}`), 'one')
+    assert.equal(presets.get(`projectless-draft-${count + 2}`), 'two')
+    rows[`projectless-draft-${count + 2}`]!.blank = false
+    open('history-a')
+    await drafts.restore()
+    assert.equal(current, `projectless-draft-${count + 1}`, 'sidebar falls back to the latest remaining unsent editor')
+    assert.equal(next, count + 2, 'restoring an older unsent editor creates no new resource')
     assert.deepEqual(errors, [])
   } finally {
     for (const dispose of disposers.reverse()) dispose()

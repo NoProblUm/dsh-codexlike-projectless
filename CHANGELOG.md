@@ -1,6 +1,28 @@
 # Changelog / 变更日志
 
 
+## 1.1.0 - 2026-10-17
+
+### 简体中文
+
+- 兼容 Git Graph 0.4.6 的新建入口，支持两种加载顺序、自动隔离开关和停用恢复；按操作保留初始化参数，无项目请求不进入 Git/worktree 流程。
+- 侧栏“未分组”气泡优先恢复最近未发送草稿，保留正文、附件和全部编辑设置；重复鼠标/键盘激活不重复新建。全局新建仍显式打开新编辑页。
+- 恢复原生项目/模式/输入布局与原版图标；独立可聚焦关闭按钮不改变控件位置，已发送页不增加项目栏。
+- 保持首次发送前 Session、Workspace、任务目录零增量，以及失败保留、结果不确定禁止重发和 Workspace 注销重试。
+- 更新中英文 README、安装链接及兼容边界，并保留第三方 Apache-2.0 许可与来源。
+- 验证：78 项测试、类型检查与构建；最终候选完成真实 Desktop 组合、首次安装/重启、故障处理及 48 项界面对照。正式版仅更新版本和文档。
+- 已知限制：800 宽 / 150% 缩放时宿主原生内容仍有裁剪；旧候选原位升级曾遇管理器 EPERM，全新安装通过不代表原位升级通过。草稿不跨刷新或重启持久化。详见 [验收报告](https://github.com/NoProblUm/dsh-codexlike-projectless/blob/v1.1.0/docs/1.1.0-%E9%AA%8C%E6%94%B6%E6%8A%A5%E5%91%8A.md)。
+
+### English
+
+- Compose with Git Graph 0.4.6 across both load orders, isolation settings and lifecycle changes; preserve per-operation initialization options and bypass Git for projectless requests.
+- Restore the latest unsent draft from the native Ungrouped sidebar action, preserving text, attachments and editor settings. Repeated mouse/keyboard activation reuses the draft; global New remains explicit.
+- Retain native layout and original icons, with an independent focusable close button and no extra project bar on sent conversations.
+- Preserve zero Session/Workspace/directory creation before first send, failed input, uncertain-send protection and independent Workspace detach retry.
+- Update both READMEs and retain Apache-2.0 attribution for the compatibility route.
+- Validation: 78 tests, type checking and build; final-candidate Desktop combinations, fresh install/restart, failure handling and 48 native UI comparisons. Stable promotion changes version and documentation only.
+- Known limits: native clipping at 800 width / 150% zoom; an earlier candidate in-place upgrade hit manager EPERM. Fresh installation does not establish successful in-place upgrades. Drafts remain runtime-only.
+
 ## 1.0.1 - 2026-10-17
 
 ### 简体中文
