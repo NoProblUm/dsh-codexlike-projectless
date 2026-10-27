@@ -8,7 +8,7 @@ DSH Codexlike Projectless is independently maintained with its own release histo
 
 ## Current version and 0.x
 
-The current version is **1.1.0**, for Windows DSH Desktop **0.2.1-rc.2** (build `332895e0f7c9d4dbfb29729f5eb367fa263ff986`). Install the [1.1.0 plugin package](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.1.0/dsh-codexlike-projectless-1.1.0.tgz) through the plugin market or official plugin manager, then quit and reopen DSH.
+The current stable release is **1.2.0**, for Windows DSH Desktop **0.2.1-rc.3** (build `be72761ee1a6736ebcdf4f3739363b083ae53c98`). Desktop rc.2 users should keep using [1.1.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.1.0).
 
 0.x required a separate native patch. 1.x includes the runtime adapter in the plugin package and needs no external installer or archive changes. If you installed an old patch, restore the original application using its installation record before installing this version. No-project drafts and dated topic directories on first send work as before.
 
@@ -26,13 +26,11 @@ Independent release numbering starts at `0.1.0`. Release packages do not include
 
 Unsent editors retain the native project button, Agent mode row, composer and original icons. On hover or keyboard focus, the native close icon replaces the folder icon in place. It is an independent focusable button and leaves surrounding controls in place. Activating it switches to no-project mode and restores that draft. No-project mode hides the close action; the picker also provides a "No project" entry. Sent conversations retain their native layout without an extra project bar, preserving their project, cwd and messages.
 
-The new-conversation bubble in the Ungrouped sidebar row restores the most recent still-unsent no-project draft, creating one only when none exists. It restores text, attachments, model, permissions, Agent preset and planning settings. Repeated clicks, Enter and Space do not create duplicate drafts or collapse the group. This restore behavior applies only to that sidebar action.
+In no-project mode, New Conversation, its shortcut, the Ungrouped sidebar action and switching to no project restore the most recently used eligible unsent draft; they create a local draft only when none qualifies. Text, references, attachments and controls remain available during the current runtime. A requested Agent preset excludes drafts that explicitly list another preset. Initialization uses the host's keep, replace or append policy and does not send the message.
 
-Git Graph **0.4.6** is supported: project chats retain its optional automatic worktree isolation, while explicitly projectless requests open a local draft before any Git routing. Both load orders preserve each operation's initial prompt, draft-clearing policy and Agent options. Compatibility is limited to the stated versions; unknown navigation wrappers still report a conflict. The compatibility code ships with this plugin and does not modify Git Graph files or the application archive.
+In a project, New Conversation delegates blank reuse to DSH. The project picker first restores this plugin's last valid unsent editor, then falls back to the native workspace-opening flow. The default project selection survives restarts; draft text, attachments and controls do not survive refresh or restart. A first send in progress or with an uncertain outcome is excluded from draft reuse.
 
-New Conversation and the shortcut open a blank editor using the current default project selection. Opening history updates that selection. A no-project conversation retains its no-project identity after its temporary Workspace is detached. The selection survives restarts; a deleted project falls back to no-project mode.
-
-Switching through the project picker restores the most recently used unsent editor for each project and for no-project mode, including text, attachments, model, permissions, Agent preset and planning mode. Selecting the current project again does not recreate the editor. Explicitly starting a new conversation opens a blank editor without carrying over text or attachments, while previous editors remain available during that runtime. Confirmed sends clear the corresponding recoverable draft; failures retain it, and uncertain results block resending.
+Git Graph 0.4.6 is not supported with this rc.3 release: in standalone testing it created a worktree but lost new-session initialization text. Unknown navigation wrappers remain rejected. The adapter does not modify the application archive or third-party plugin files.
 
 An uncertain send is not retried and does not delete resources. The plugin waits for confirmation from native persistent Session state. Explicit rejection or creation failure reclaims only newly allocated empty directories; existing files are not deleted.
 
@@ -60,17 +58,17 @@ General Settings lets you browse, save and inspect the effective workspace root.
 
 ## Installation and removal
 
-You need Windows and the supported DSH Desktop 0.2.1-rc.2 build. 1.1.0 includes the runtime adapter. Installing the plugin requires no Node.js, external installer or native patch.
+You need Windows and the supported DSH Desktop 0.2.1-rc.3 build. 1.2.0 includes the runtime adapter. Installing the plugin requires no Node.js, external installer or native patch.
 
 ### 1. Install from the plugin market
 
-1. Search for `dsh-codexlike-projectless` in DSH's plugin market and install version 1.1.0.
+1. Search for `dsh-codexlike-projectless` in DSH's plugin market and install version 1.2.0.
 2. Quit and reopen the entire DSH application normally.
 3. Choose and save a workspace root under Settings → General → No-project conversations.
 
 ### 2. Import the release package
 
-1. Download [dsh-codexlike-projectless-1.1.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.1.0/dsh-codexlike-projectless-1.1.0.tgz).
+1. Download [dsh-codexlike-projectless-1.2.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.2.0/dsh-codexlike-projectless-1.2.0.tgz).
 2. Import it through the plugin market or official plugin manager, then quit and reopen DSH normally.
 3. Set a workspace root under Settings → General → No-project conversations.
 
@@ -90,7 +88,7 @@ Import the resulting `.tgz` as described above. See [CONTRIBUTING.md](CONTRIBUTI
 
 ### Migrate a patched 0.x installation
 
-Disable the old plugin and restore the original application using its installation record before installing 1.1.0. If the old installer left a local `link:` copy, remove it through the manager first. Old recovery tools may restore other plugin settings from their backup; check the backup and any later changes before using them.
+Disable the old plugin and restore the original application using its installation record before installing 1.2.0. If the old installer left a local `link:` copy, remove it through the manager first. Old recovery tools may restore other plugin settings from their backup; check the backup and any later changes before using them.
 
 ### Update and remove
 
@@ -106,9 +104,7 @@ Without a saved override, the root comes from the profile's `dsh-codexlike-proje
 
 ## Validation and limitations
 
-Version 1.1.0 passes type checking, 78 tests and the build. Candidate rc.3 was exercised in the original target Desktop with both load orders, real worktrees, sidebar restoration, first-send failure handling and 48 plugin-on/off native layout and icon comparisons. The stable release retains that implementation with version and release-documentation updates. Desktop evidence uses isolated profiles and a keyless model fixture; it does not establish external model-service acceptance. See the [1.1.0 acceptance report](docs/1.1.0-验收报告.md) (Chinese).
-
-Known limitations: at 800-pixel window width and 150% zoom, native content clips identically with the plugin on and off; this release does not change host zoom rules. An in-place upgrade of an earlier candidate failed with `EPERM` in the official manager. Fresh-profile installation and normal restart passed for the final candidate, which does not establish successful in-place upgrades. Save drafts before updating; retain the existing installation and use the official manager to resolve upgrade failures rather than overwriting live files.
+Validation uses an unmodified extracted Desktop application, isolated profiles, the official plugin manager and a keyless model fixture. The candidate passed 79 tests, 23 Desktop scenario groups and 12 additional draft layout checks; prior same-day evidence covers manager lifecycle and the 1.1.0 update on the same profile. Stable promotion changes version metadata and documentation only. See the [1.2.0 acceptance report](docs/1.2.0-验收报告.md). At 800 width / 150% zoom, native content still clips with or without the plugin. External model services and the Windows host installer upgrade were not tested.
 
 The `0.1.1` installer integration tests cover first installation, updates, configuration preservation and rollback using synthetic ASAR archives with actual DSH 0.2.0-rc.2 module code. They do not establish live Desktop installation or restart acceptance. Earlier build checks: [0.1.0 validation](docs/独立初版验证.md).
 

@@ -3,7 +3,7 @@
 Requirements:
 
 - Node.js 22.19 or newer
-- Windows with DeepSeek Harness Desktop 0.2.1-rc.2 for native integration checks
+- Windows with DeepSeek Harness Desktop 0.2.1-rc.3 (build be72761ee1a6736ebcdf4f3739363b083ae53c98) for native integration checks
 
 Install and verify:
 

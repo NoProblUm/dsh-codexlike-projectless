@@ -222,19 +222,20 @@ export async function abandonUnusedProjectlessWorkspace(
   removeDirectory: (path: string) => Promise<void>,
   onError: (reason: unknown) => void = console.error,
   diagnostics: DiagnosticSink = noDiagnostics,
-): Promise<void> {
+): Promise<boolean> {
   for (const sessionId of target.sessionIds) {
-    await workspaces.archiveSession(sessionId).catch(onError)
+    try { await workspaces.archiveSession(sessionId) } catch (error) { onError(error); return false }
   }
   try {
     await workspaces.delete(target.workspaceId)
   } catch (error) {
     diagnostics('session.rollback.failed', { workspaceId: target.workspaceId, code: diagnosticErrorCode(error) })
     onError(error)
-    return
+    return false
   }
-  await removeDirectory(target.path).catch(onError)
+  try { await removeDirectory(target.path) } catch (error) { onError(error); return false }
   diagnostics('session.abandoned', { workspaceId: target.workspaceId, path: target.path })
+  return true
 }
 
 /**
@@ -312,7 +313,7 @@ export function watchTemporaryWorkspace(
       unsubscribe()
       return
     }
-    finish(() => abandonUnusedProjectlessWorkspace(workspaces, unusedReceipt(receipt), removeDirectory, onError, diagnostics))
+    finish(async () => { await abandonUnusedProjectlessWorkspace(workspaces, unusedReceipt(receipt), removeDirectory, onError, diagnostics) })
   }
 
   const reconcile = (): void => {

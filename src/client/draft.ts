@@ -1,9 +1,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
+import type { StartSessionOptions } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { DraftAttachmentId, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ClientConnectionRpc } from '@deepseek-ai/dsh-client-connection/client'
-import { createAndSendProjectlessSession } from './first-prompt.ts'
+import { createAndSendProjectlessSession, RollbackIncompleteError } from './first-prompt.ts'
 import { createProjectlessRegistry, isCurrentSession, requestProjectlessDirectory, requestProjectlessRoot, requestRemoveProjectlessDirectory, type ProjectlessSessionHost, type ProjectlessSessionReceipt } from './session.ts'
 import { PROJECTLESS_RPC_CHANNEL, projectlessEndpoint } from '../shared/rpc.ts'
 import type { DiagnosticSink } from '../shared/diagnostics.ts'
@@ -21,6 +22,7 @@ interface Draft {
   plan: boolean
   busy: boolean
   uncertain: boolean
+  cleanupBlocked?: boolean
   lastUsed: number
   receipt?: ProjectlessSessionReceipt
   admissionReference?: ReturnType<DraftSessions['retain']>
@@ -45,7 +47,12 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
   let disposed = false
   const lifetime = new AbortController()
   let initialized = false
-  let starting: Promise<SessionId> | undefined
+  let navigationQueue: Promise<void> = Promise.resolve()
+  const schedule = <T>(action: () => Promise<T>): Promise<T> => {
+    const result = navigationQueue.then(action)
+    navigationQueue = result.then(() => {}, () => {})
+    return result
+  }
   let editorUse = 0
   let selection: Selection
   try { selection = decodeSelection(localStorage.getItem(SELECTION_KEY)) } catch { selection = { kind: 'unset' } }
@@ -84,61 +91,71 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     if (!result.ok) throw new Error(result.error.message)
     return result.value as T
   }
-  const start = (fresh = false): Promise<SessionId> => {
-    if (!fresh && starting !== undefined) return starting
-    const operation = (async () => {
-      const catalog = await nativeCall<ModelCatalog>('session', 'modelCatalog')
-      requireCatalogSelection(catalog, catalog.default)
-      const presets = await nativeCall<{ presets: { id: string, isDefault?: boolean }[] }>('agentPresets', 'list')
-      const permissions = await nativeCall<{ defaultPreset: string }>('permissionPresets', 'catalog')
-      if (disposed) throw new Error('Projectless plugin unloaded')
-      const preset = presets.presets.find(item => item.isDefault)?.id
-      const draft: Draft = { model: catalog.default, permission: permissions.defaultPreset,
-        ...preset === undefined ? {} : { preset }, plan: false, busy: false, uncertain: false, lastUsed: 0 }
-      const id = sessions.createProjectlessDraft({ modelSelection: { next: draft.model }, permissions: { currentValue: draft.permission },
-        agentPreset: preset, plan: { active: false }, inbox: { 'next-turn': [] } })
-      drafts.set(id, draft)
-      projectlessSessions.add(id)
-      rememberBlank(id)
-      select()
-      ctx.uiWorkspace.openSession(id)
-      return id
-    })().finally(() => { if (starting === operation) starting = undefined })
-    if (!fresh) starting = operation
-    return operation
+  const createDraft = async (requestedPreset?: string): Promise<SessionId> => {
+    const catalog = await nativeCall<ModelCatalog>('session', 'modelCatalog')
+    requireCatalogSelection(catalog, catalog.default)
+    const presets = await nativeCall<{ presets: { id: string, isDefault?: boolean }[] }>('agentPresets', 'list')
+    const permissions = await nativeCall<{ defaultPreset: string }>('permissionPresets', 'catalog')
+    if (disposed) throw new Error('Projectless plugin unloaded')
+    const preset = requestedPreset ?? presets.presets.find(item => item.isDefault)?.id
+    const draft: Draft = { model: catalog.default, permission: permissions.defaultPreset,
+      ...preset === undefined ? {} : { preset }, plan: false, busy: false, uncertain: false, lastUsed: 0 }
+    const id = sessions.createProjectlessDraft({ modelSelection: { next: draft.model }, permissions: { currentValue: draft.permission },
+      agentPreset: preset, plan: { active: false }, inbox: { 'next-turn': [] } })
+    drafts.set(id, draft)
+    projectlessSessions.add(id)
+    rememberBlank(id)
+    return id
   }
 
-  const openEditor = (workspaceId?: WorkspaceId, fresh = false): Promise<SessionId> => {
+  const openEditor = async (workspaceId?: WorkspaceId, options?: StartSessionOptions): Promise<SessionId | undefined> => {
     const previous = currentId()
     if (previous !== undefined && sessions.list.getSnapshot().byId[previous]?.blank) {
       rememberBlank(previous, isProjectlessSession(previous) ? undefined : workspaceOf(previous))
     }
-    const target = fresh ? undefined : cache.find(keyOf(workspaceId))
-    if (target !== undefined && sessions.list.getSnapshot().byId[target]?.blank) {
+    if (workspaceId === undefined) {
+      const snapshot = sessions.list.getSnapshot()
+      const target = [...drafts].filter(([id, draft]) => {
+        const summary = snapshot.byId[id]
+        const preset = summary?.projectionValues?.agentPreset
+        return summary?.blank && !draft.busy && !draft.uncertain && !draft.cleanupBlocked
+          && (options?.agentPreset === undefined || typeof preset !== 'string' || preset === options.agentPreset)
+      }).sort((a, b) => b[1].lastUsed - a[1].lastUsed)[0]?.[0] ?? await createDraft(options?.agentPreset)
+      if (disposed) throw new Error('Projectless plugin unloaded')
+      select()
+      rememberBlank(target)
+      if (previous !== target) ctx.uiWorkspace.openSession(target)
+      const initialize = options !== undefined && (options.prompt !== undefined
+        || (options.whenDraftExists ?? (options.clearPreviousDraft === true ? 'replace' : 'keep')) === 'replace')
+      if (initialize) {
+        const reference = held.get(target)
+        if (reference === undefined) throw new Error('草稿输入作用域不可用')
+        const binding = await reference.ready
+        if (disposed) throw new Error('Projectless plugin unloaded')
+        if (conversation.input.requestDraftInitialization(binding, options) === 'blocked') throw new Error('输入已锁定，无法初始化新草稿')
+      }
+      return target
+    }
+    const target = cache.find(keyOf(workspaceId))
+    const workspace = ctx.workspaces.list.getSnapshot()
+    if (target !== undefined && sessions.list.getSnapshot().byId[target]?.blank
+      && !workspace.archivedSessionIds?.includes(target)
+      && workspace.items.some(item => item.workspaceId === workspaceId && item.sessionIds.includes(target))) {
       select(workspaceId)
       if (previous !== target) ctx.uiWorkspace.openSession(target)
-      return Promise.resolve(target)
+      return target
     }
-    if (workspaceId === undefined) return start(fresh)
-    return sessions.create({ workspaceId }).then(id => {
-      if (disposed) throw new Error('Projectless plugin unloaded')
-      rememberBlank(id, workspaceId)
-      select(workspaceId)
-      ctx.uiWorkspace.openSession(id)
-      return id
-    })
+    select(workspaceId)
+    await ctx.uiWorkspace.openWorkspace(workspaceId)
+    return currentId()
   }
-  const switchProjectless = () => {
-    const id = currentId()
-    return openEditor(undefined, id !== undefined && sessions.list.getSnapshot().byId[id]?.blank === false)
-  }
-  const restore = () => {
-    const latest = [...drafts].filter(([id]) => sessions.list.getSnapshot().byId[id]?.blank)
-      .sort((a, b) => b[1].lastUsed - a[1].lastUsed)[0]
-    if (latest) cache.remember(keyOf(), latest[0])
-    return openEditor()
-  }
-  ctx.on('projectless/select-workspace', workspaceId => openEditor(workspaceId).then(() => {}))
+  const switchProjectless = () => schedule(async () => {
+    const id = await openEditor()
+    if (id === undefined) throw new Error('无项目草稿不可用')
+    return id
+  })
+  const restore = switchProjectless
+  ctx.on('projectless/select-workspace', workspaceId => schedule(() => openEditor(workspaceId)).then(() => {}))
   ctx.on('projectless/detach-pending', id => detachments.has(id))
   ctx.on('projectless/retry-detach', async id => {
     const receipt = detachments.get(id)
@@ -150,22 +167,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
   ctx.on('projectless/new-session', (workspaceId, currentSessionId, options) => {
     const current = currentSessionId ?? currentId()
     if (workspaceId !== undefined || current !== undefined && workspaceOf(current) !== undefined) return undefined
-    void openEditor(undefined, true).then(async id => {
-      if (disposed || options === undefined) return
-      const reference = held.get(id)
-      if (reference === undefined) throw new Error('草稿输入作用域不可用')
-      const binding = await reference.ready
-      if (disposed) return
-      if (options.agentPreset !== undefined) {
-        const draft = drafts.get(id)!
-        draft.preset = options.agentPreset
-        sessions.updateProjectlessDraft(id, 'agentPreset', draft.preset)
-      }
-      switch (conversation.input.requestDraftInitialization(binding, options)) {
-        case 'applied': case 'preserved': break
-        case 'blocked': throw new Error('输入已锁定，无法初始化新草稿')
-      }
-    }).catch(onError)
+    void schedule(() => openEditor(undefined, options)).catch(onError)
     return true
   })
 
@@ -219,7 +221,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     signal = AbortSignal.any([signal, lifetime.signal])
     const draft = drafts.get(session.sessionId)
     if (draft === undefined) return undefined
-    if (draft.busy || draft.uncertain) return Promise.resolve({ kind: 'error', text: '首次发送仍在处理或结果尚未确认，请勿重复发送。' })
+    if (draft.busy || draft.uncertain || draft.cleanupBlocked) return Promise.resolve({ kind: 'error', text: '首次发送仍在处理或结果尚未确认，请勿重复发送。' })
     const choice = { ...draft, model: { ...draft.model } }
     draft.busy = true
     conversation.blocks.set(session.sessionId, { reason: '正在生成主题并创建会话…' })
@@ -289,11 +291,12 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
         }
         return result.acceptance === 'accepted' ? { kind: 'success' } : { kind: 'error' }
       } catch (error) {
+        if (error instanceof RollbackIncompleteError) draft.cleanupBlocked = true
         onError(error)
         return { kind: 'error', text: error instanceof Error ? error.message : String(error) }
       } finally {
         draft.busy = false
-        if (!disposed && !draft.uncertain) conversation.blocks.set(session.sessionId, undefined)
+        if (!disposed && !draft.uncertain && !draft.cleanupBlocked) conversation.blocks.set(session.sessionId, undefined)
         reference.release()
       }
     })()
@@ -357,7 +360,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
       if (selection.kind === 'projectless' && (current === undefined || sessions.list.getSnapshot().byId[current]?.blank)) {
         const selected = readSelection()
         const target = selected !== undefined && ctx.workspaces.list.getSnapshot().items.some(item => item.workspaceId === selected) ? selected : undefined
-        void openEditor(target, true).catch(onError)
+        void schedule(() => openEditor(target)).catch(onError)
       } else observe()
     }
     const offSessions = sessions.list.subscribe(initialize)
@@ -372,5 +375,5 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     held.clear()
     for (const [id, draft] of drafts) { draft.admissionReference?.release(); sessions.discardProjectlessDraft(id) }
   }, 'projectless: draft lifetime')
-  return { start: switchProjectless, restore, select, switchWorkspace: (id: WorkspaceId) => openEditor(id).then(() => {}), isProjectlessSession }
+  return { start: switchProjectless, restore, select, switchWorkspace: (id: WorkspaceId) => schedule(() => openEditor(id)).then(() => {}), isProjectlessSession }
 }

@@ -11,6 +11,8 @@ import {
 
 export type PromptAcceptance = 'accepted' | 'rejected' | 'unknown'
 
+export class RollbackIncompleteError extends Error {}
+
 /** Adapter to native draft input, title preparation and admission. */
 export interface FirstPromptServices<Input, PreparedTitle extends { title: string }> {
   signal?: AbortSignal
@@ -47,7 +49,10 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
     services.signal?.throwIfAborted()
     workspace = await host.create({ path })
   } catch (error) {
-    await services.removeDirectory(path).catch(services.onError)
+    try { await services.removeDirectory(path) } catch (cleanupError) {
+      services.onError(cleanupError)
+      throw new RollbackIncompleteError('资源清理未完成，草稿暂时锁定')
+    }
     throw error
   }
   registry.remember(workspace.workspaceId)
@@ -73,9 +78,10 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
       return { receipt, acceptance }
     }
     if (acceptance === 'rejected') {
-      await abandonUnusedProjectlessWorkspace(host, {
+      const cleaned = await abandonUnusedProjectlessWorkspace(host, {
         ...receipt, sessionIds: [sessionId],
       }, services.removeDirectory, services.onError, diagnostics)
+      if (!cleaned) { protectPending = true; throw new RollbackIncompleteError('资源清理未完成，草稿暂时锁定') }
       return { receipt, acceptance }
     }
     let detachmentPending = false
@@ -99,6 +105,7 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
     }
     return { receipt, acceptance, ...detachmentPending ? { detachmentPending: true as const } : {} }
   } catch (error) {
+    if (error instanceof RollbackIncompleteError) throw error
     if (sending && receipt !== undefined) {
       // Transport failures may hide an accepted prompt. Keep resources and the
       // pending guard until the native caller reconciles admission by requestId.
@@ -108,9 +115,10 @@ export async function createAndSendProjectlessSession<Input, PreparedTitle exten
       return { receipt, acceptance: 'unknown' }
     }
     diagnostics('session.creation.failed', { workspaceId: workspace.workspaceId, code: diagnosticErrorCode(error) })
-    await abandonUnusedProjectlessWorkspace(host, {
+    const cleaned = await abandonUnusedProjectlessWorkspace(host, {
       workspaceId: workspace.workspaceId, path, sessionIds: receipt === undefined ? [] : [receipt.sessionId],
     }, services.removeDirectory, services.onError, diagnostics)
+    if (!cleaned) { protectPending = true; throw new RollbackIncompleteError('资源清理未完成，草稿暂时锁定') }
     throw error
   } finally {
     // Unknown admission must remain protected from the blank-workspace sweep.

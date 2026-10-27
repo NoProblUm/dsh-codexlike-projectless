@@ -13,7 +13,7 @@ test('global new inherits current project; projectless stays local and explicit 
   const listeners = new Set<() => void>()
   const handlers = new Map<string, (...args: unknown[]) => unknown>()
   const disposers: (() => void)[] = []
-  const rows: Record<string, { blank: boolean, retainedBy: Record<string, number> }> = {
+  const rows: Record<string, { blank: boolean, retainedBy: Record<string, number>, projectionValues?: { agentPreset?: string } }> = {
     'native-restored': { blank: true, retainedBy: { mainView: 1 } },
     'history-a': { blank: false, retainedBy: {} },
     'history-none': { blank: false, retainedBy: {} },
@@ -21,16 +21,16 @@ test('global new inherits current project; projectless stays local and explicit 
   const projects = [{ workspaceId: 'a', sessionIds: ['native-restored', 'history-a'] }]
   let current = 'native-restored'
   let next = 0
-  const initializations = new Map<string, unknown>()
+  const initializations = new Map<string, unknown[]>()
   const presets = new Map<string, unknown>()
   const snapshot = () => ({ phase: 'ready', ids: Object.keys(rows), byId: rows })
   const publish = () => { for (const listener of listeners) listener() }
   const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
   const sessions = {
     list: { getSnapshot: snapshot, subscribe },
-    createProjectlessDraft() {
+    createProjectlessDraft(values: { agentPreset?: string }) {
       const id = `projectless-draft-${++next}`
-      rows[id] = { blank: true, retainedBy: {} }
+      rows[id] = { blank: true, retainedBy: {}, projectionValues: values.agentPreset === undefined ? {} : { agentPreset: values.agentPreset } }
       return id
     },
     discardProjectlessDraft(id: string) { delete rows[id] },
@@ -56,8 +56,8 @@ test('global new inherits current project; projectless stays local and explicit 
   const ctx = {
     sessions,
     workspaces: { list: { getSnapshot: () => ({ phase: 'ready', items: projects }), subscribe } },
-    uiWorkspace: { openSession: open },
-    conversation: { input: { requestDraftInitialization(binding: { id: string }, options: unknown) { initializations.set(binding.id, options); return 'applied' } } }, connection: { rpc: {} },
+    uiWorkspace: { openSession: open, async openWorkspace(workspaceId: string) { const id = await sessions.create({ workspaceId }); open(id) } },
+    conversation: { input: { requestDraftInitialization(binding: { id: string }, options: unknown) { initializations.set(binding.id, [...initializations.get(binding.id) ?? [], options]); return 'applied' } } }, connection: { rpc: {} },
     remote: {
       session: { modelCatalog: () => success({ default: { provider: 'fixture', model: 'test' }, routableProviders: ['fixture'], groups: [{ id: 'fixture', models: [{ id: 'test' }] }] }) },
       agentPresets: { list: () => success({ presets: [] }) },
@@ -92,7 +92,7 @@ test('global new inherits current project; projectless stays local and explicit 
     rows['history-a']!.retainedBy.mainView = 0
     await flush()
     assert.match(current, /^projectless-draft-/)
-    assert.notEqual(current, first, 'explicit new never reuses cached editor')
+    assert.equal(current, first, 'ordinary new restores the existing editor')
     open('history-a')
     const membership = [...projects[0]!.sessionIds]
     const history = structuredClone(rows['history-a'])
@@ -121,16 +121,80 @@ test('global new inherits current project; projectless stays local and explicit 
     handlers.get('projectless/new-session')!(undefined, 'history-none', one)
     handlers.get('projectless/new-session')!(undefined, 'history-none', two)
     await flush()
-    assert.equal(next, count + 2, 'two explicit requests retain separate operation identities')
-    assert.deepEqual(initializations.get(`projectless-draft-${count + 1}`), one)
-    assert.deepEqual(initializations.get(`projectless-draft-${count + 2}`), two)
-    assert.equal(presets.get(`projectless-draft-${count + 1}`), 'one')
-    assert.equal(presets.get(`projectless-draft-${count + 2}`), 'two')
-    rows[`projectless-draft-${count + 2}`]!.blank = false
+    assert.equal(next, count, 'an unlisted preset remains eligible for both concurrent requests')
+    assert.deepEqual(initializations.get(first), [one, two], 'each request is applied in arrival order')
+    rows[first]!.projectionValues = { agentPreset: 'one' }
+    handlers.get('projectless/new-session')!(undefined, 'history-none', two)
+    await flush()
+    assert.equal(next, count + 1, 'a listed different preset requires a new draft')
+    const second = current
+    assert.equal(rows[second]?.projectionValues?.agentPreset, 'two')
+    const same = { prompt: 'three', whenDraftExists: 'append', agentPreset: 'two' }
+    handlers.get('projectless/new-session')!(undefined, 'history-none', same)
+    await flush()
+    assert.equal(next, count + 1, 'matching preset reuses the most recent draft')
+    assert.deepEqual(initializations.get(second), [two, same])
+    rows[second]!.blank = false
     open('history-a')
     await drafts.restore()
-    assert.equal(current, `projectless-draft-${count + 1}`, 'sidebar falls back to the latest remaining unsent editor')
-    assert.equal(next, count + 2, 'restoring an older unsent editor creates no new resource')
+    assert.equal(current, first, 'sidebar falls back to the latest remaining unsent editor')
+    assert.equal(next, count + 1, 'restoring an older unsent editor creates no new resource')
+    assert.deepEqual(errors, [])
+  } finally {
+    for (const dispose of disposers.reverse()) dispose()
+    if (previousStorage) Object.defineProperty(globalThis, 'localStorage', previousStorage)
+    else Reflect.deleteProperty(globalThis, 'localStorage')
+  }
+})
+
+
+test('concurrent requests during first draft creation share one draft and keep their own ordered options', async () => {
+  const previousStorage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => null, setItem() {} } })
+  const handlers = new Map<string, (...args: any[]) => any>()
+  const disposers: (() => void)[] = []
+  const rows: Record<string, any> = {}
+  let current: string | undefined
+  let creates = 0
+  let releaseCatalog!: () => void
+  const catalogGate = new Promise<void>(resolve => { releaseCatalog = resolve })
+  const applied: unknown[] = []
+  const snapshot = () => ({ phase: 'ready', ids: Object.keys(rows), byId: rows })
+  const sessions = {
+    list: { getSnapshot: snapshot, subscribe: () => () => {} },
+    createProjectlessDraft() { creates++; rows.draft = { blank: true, retainedBy: {}, projectionValues: {} }; return 'draft' },
+    retain() { return { ready: Promise.resolve({ id: 'draft' }), release() {} } },
+    discardProjectlessDraft() {},
+  }
+  const ok = (value: unknown) => ({ ok: true, value })
+  const ctx = {
+    sessions,
+    workspaces: { list: { getSnapshot: () => ({ phase: 'ready', items: [], archivedSessionIds: [] }), subscribe: () => () => {} } },
+    uiWorkspace: { openSession(id: string) { current = id; rows[id].retainedBy.mainView = 1 } },
+    conversation: { input: { requestDraftInitialization(_binding: unknown, options: unknown) { applied.push(options); return 'applied' } } },
+    connection: { rpc: {} },
+    remote: {
+      session: { async modelCatalog() { await catalogGate; return ok({ default: { provider: 'fixture', model: 'test' }, routableProviders: ['fixture'], groups: [{ id: 'fixture', models: [{ id: 'test' }] }] }) } },
+      agentPresets: { async list() { return ok({ presets: [] }) } },
+      permissionPresets: { async catalog() { return ok({ defaultPreset: 'edit' }) } },
+    },
+    on(name: string, handler: (...args: any[]) => any) { handlers.set(name, handler) },
+    effect(effect: () => () => void) { disposers.push(effect()) },
+  }
+  const errors: unknown[] = []
+  try {
+    installProjectlessDrafts(ctx as never, {} as never, new Set(), () => {}, error => errors.push(error), { admission: () => undefined, beginFirstSend() {} })
+    const first = { prompt: 'first', whenDraftExists: 'append' }
+    const second = { prompt: 'second', whenDraftExists: 'replace' }
+    assert.equal(handlers.get('projectless/new-session')!(undefined, undefined, first), true)
+    assert.equal(handlers.get('projectless/new-session')!(undefined, undefined, second), true)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(creates, 0)
+    releaseCatalog()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(creates, 1)
+    assert.equal(current, 'draft')
+    assert.deepEqual(applied, [first, second])
     assert.deepEqual(errors, [])
   } finally {
     for (const dispose of disposers.reverse()) dispose()

@@ -1,6 +1,25 @@
 # Changelog / 变更日志
 
 
+## 1.2.0 - 2026-10-27
+
+### 简体中文
+
+- 支持 Windows DSH Desktop 0.2.1-rc.3，精确构建 be72761ee1a6736ebcdf4f3739363b083ae53c98；Desktop rc.2 请继续使用 1.1.0。
+- 跟随 rc.3 的空白会话和 Agent 预设复用规则，保留 keep/replace/append 输入初始化、附件及原生提交状态。无项目草稿首发前不创建真实会话、工作区或目录。
+- 首发并行编辑不覆盖另一份草稿；资源清理失败时锁定草稿，保留不确定提交保护和临时 Workspace 注销重试。
+- 候选已通过 79 项测试、23 个真实 Desktop 场景组及 12 组新增草稿布局检查；官方管理器安装、更新、卸载、重装及正常重启证据单独记录。正式提升仅变更版本元数据和文档。
+- 已知限制：不支持 Git Graph 0.4.6 组合；800 宽 / 150% 缩放时保留宿主原生裁剪；草稿正文和附件不跨刷新或重启持久化。模型使用无密钥 fixture，未测试外部模型或宿主安装程序覆盖升级。
+- 验收范围及证据见 [1.2.0 验收报告](https://github.com/NoProblUm/dsh-codexlike-projectless/blob/v1.2.0/docs/1.2.0-%E9%AA%8C%E6%94%B6%E6%8A%A5%E5%91%8A.md)。
+
+### English
+
+- Support Windows DSH Desktop 0.2.1-rc.3, exact build be72761ee1a6736ebcdf4f3739363b083ae53c98. Desktop rc.2 users should remain on 1.1.0.
+- Follow rc.3 blank-session and Agent-preset reuse rules, preserving keep/replace/append initialization, attachments and native submission state. Drafts create no host Session, Workspace or task directory before first send.
+- Preserve a second draft while another sends; lock drafts after incomplete cleanup and retain uncertain-submission protection and independent Workspace detach retry.
+- Candidate verification: 79 tests, 23 real Desktop scenario groups and 12 additional draft layout checks, with manager lifecycle and same-profile plugin-update evidence recorded separately. Stable promotion changes version metadata and documentation only.
+- Known limits: Git Graph 0.4.6 combinations are unsupported; native clipping remains at 800 width / 150% zoom; draft text and attachments are runtime-only. Tests use a keyless model fixture, without external-provider or Windows host-installer upgrade validation.
+
 ## 1.1.0 - 2026-10-17
 
 ### 简体中文

@@ -15,10 +15,10 @@ export function activateHostRuntime(ctx: Context): { status: RuntimeStatus, titl
   let active = true
   try {
     const archive = process.argv.map(arg => /^(.*?\.asar)(?:[/\\]|$)/i.exec(arg)?.[1]).find(Boolean)
-    if (process.platform !== 'win32' || !archive) throw new Error('仅支持已验证的 Windows Desktop 0.2.1-rc.2 构建')
+    if (process.platform !== 'win32' || !archive) throw new Error('仅支持已验证的 Windows Desktop 0.2.1-rc.3 构建')
     const manifest = JSON.parse(readFileSync(join(archive, 'package.json'), 'utf8'))
     status.build = manifest.dshBuildCommit ?? 'unknown'
-    if (manifest.version !== '0.2.1-rc.2' || manifest.dshBuildCommit !== TARGET_BUILD || manifest.dshBuildDirty !== false) throw new Error('宿主构建不在支持范围内')
+    if (manifest.version !== '0.2.1-rc.3' || manifest.dshBuildCommit !== TARGET_BUILD || manifest.dshBuildDirty !== false) throw new Error('宿主构建不在支持范围内')
     for (const [path, expected] of Object.entries(TARGET_MODULES)) {
       const bytes = readFileSync(join(archive, 'dsh/node_modules/@deepseek-ai', path))
       if (createHash('sha256').update(bytes).digest('hex') !== expected) throw new Error('宿主模块不匹配或仍安装旧归档补丁：' + path)
@@ -94,14 +94,14 @@ export function activateHostRuntime(ctx: Context): { status: RuntimeStatus, titl
   }
 }
 
-// Byte fingerprints of the original modules in the verified rc.2 archive.
-// Generated from original SHA-256 47874618bf5b3011fcaac10cd4c85f69da333e70d4f99b921207c78d0999512a.
+// Byte fingerprints of the original modules in the verified rc.3 archive.
+// Generated from original SHA-256 04b32e3a872826ba15cfb2081c6a929a8d4ecaa65e09a2543e5a6b30e2eff1f0.
 const TARGET_MODULES: Record<string, string> = {
   'dsh-client-file-upload/lib/client.js': '4c09378ab7cb3dbe58253bd1fad8c4a00ebf5a93b462d96623edb7bd4e566305',
   'dsh-api-gateway/lib/client.browser.js': '3043de82334846a3a5654b7317830c5403f90e9aeca692d3c15e30e01d16505d',
   'dsh-api-session-controller/lib/client.js': '82f2301c18f0e51340c1eedf8ecdfb939e873b3770a80632e438b86e82887d0e',
   'dsh-api-gateway/lib/index.js': '4fbe460fec585ebc2cf2887261f6c33f024081a539d9fb5d6557a9002324b23f',
-  'dsh-client-ui-conversation/lib/client.js': '843dbcd884e05d77e525bf84b9e6dce180fd49ac8486a3c75591c291f09c9afa',
-  'dsh-client-ui-workspace/lib/client.js': '4dd7f3c580f2316af8172ee4dc542b10e19b030e81f9242f4696e8139260dc17',
+  'dsh-client-ui-conversation/lib/client.js': 'c151e7acb17eab9018939eff3b093a4cc4983e0c3cea5eba7ac858dbf8a3eb84',
+  'dsh-client-ui-workspace/lib/client.js': 'bafd2d6eea2f82674cc0606bec13fc891e44b42fb2ac973f01cb32c735d4062f',
   'dsh-session-title/lib/index.js': 'eb814490ca3d0aaabf8f6ddc705a031f99a98709c484c1502c5f28f101cf0eeb',
 }

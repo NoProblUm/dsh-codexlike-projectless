@@ -163,7 +163,8 @@ test('a UI opening failure cannot change an accepted prompt into an unknown or r
 test('failed workspace rollback never removes a directory still referenced by the workspace', async () => {
   const fixture = scenario('rejected')
   fixture.host.delete = async () => { throw new Error('unregister failed') }
-  assert.equal((await fixture.run()).acceptance, 'rejected')
+  await assert.rejects(fixture.run(), /资源清理未完成/)
   assert.equal(fixture.operations.includes('remove-directory'), false)
+  assert.equal(fixture.pending.has(fixture.workspaceId), true)
   assert.equal(fixture.errors.length, 1)
 })
