@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createElement, Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, RUNTIME_WRAPPER, originalInstance, wrapRuntimeMethod, type RuntimeStatus } from '../shared/runtime.ts'
+import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, RUNTIME_WRAPPER, originalInstance, wrapRuntimeMethod, matchesHostRuntime, type RuntimeStatus } from '../shared/runtime.ts'
 import { decodeSelection, SELECTION_KEY } from './selection.ts'
 import { matchesNativeSubmission, type NativeAdmission } from './admission.ts'
 import { installSessionDispatch, gitGraphTransport } from './session-dispatch.ts'
@@ -384,7 +384,7 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
     subscribeStatus(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
     confirm(host: RuntimeStatus) {
       if (!active || status.state === 'restart-required') return false
-      if (host.state !== 'ready' || host.adapter !== ADAPTER_ID || host.version !== RUNTIME_PACKAGE_VERSION || host.build !== TARGET_BUILD || host.missingCapabilities.length > 0) {
+      if (!matchesHostRuntime(host)) {
         updateStatus('unsupported', host.reason || 'Host 与客户端适配版本不匹配')
         return false
       }

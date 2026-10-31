@@ -1,0 +1,21 @@
+async page => {
+  await page.keyboard.press('Escape')
+  await page.getByRole('button',{name:'标准模式',exact:true}).click()
+  await page.getByRole('menuitem',{name:/^极简模式 /}).click()
+  await page.locator('input[type=file]').setInputFiles('experiments/runtime-acceptance/attachment.txt')
+  await page.locator('[data-composer-input]').fill('非默认预设和只读权限保留')
+  const snapshot=()=>page.evaluate(()=>{const a=__DSH_ACCEPTANCE__,id=a.navigation.mainReference.sessionId,p=a.snapshot().sessions.byId[id].projectionValues,input=a.conversation.input.shell(id).snapshot;return {id,permission:p.permissions.currentValue,preset:p.agentPreset,model:p.modelSelection.next,attachments:input.attachmentIds,text:input.draft}})
+  const before=await snapshot()
+  if(before.preset!=='minimal'||before.permission==='workspace-write'||before.attachments.length!==1)throw new Error('Nondefault controls were not set')
+  await page.evaluate(()=>__DSH_ACCEPTANCE__.navigation.startSession(undefined,{prompt:'应被忽略',whenDraftExists:'keep',agentPreset:'minimal'}))
+  if(JSON.stringify(await snapshot())!==JSON.stringify(before))throw new Error('keep changed draft controls')
+  const generation=await page.evaluate(()=>{const a=__DSH_ACCEPTANCE__,generation=a.connection.generation.getSnapshot().id;a.connection.reconnect();return generation})
+  await page.waitForFunction(generation=>__DSH_ACCEPTANCE__.connection.generation.getSnapshot()?.id>generation&&__DSH_ACCEPTANCE__.snapshot().sessions.phase==='ready',generation)
+  const retained=await snapshot()
+  if(JSON.stringify(retained)!==JSON.stringify(before))throw new Error('Reconnect changed controls or attachments')
+  await page.locator('[data-composer-input]').press('Enter')
+  await page.getByText('隔离测试模型已收到原生提交。',{exact:true}).waitFor()
+  const final=await page.evaluate(()=>{const a=__DSH_ACCEPTANCE__,id=a.navigation.mainReference.sessionId;return {id,projection:a.snapshot().sessions.byId[id].projectionValues}})
+  if(final.projection.agentPreset!==before.preset||final.projection.permissions.currentValue!==before.permission||JSON.stringify(final.projection.modelSelection.next)!==JSON.stringify(before.model))throw new Error('First send changed selected controls')
+  return {before,retained,final}
+}

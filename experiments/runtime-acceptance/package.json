@@ -1,0 +1,12 @@
+{
+  "name": "dsh-runtime-acceptance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "inject": ["@deepseek-ai/dsh-client-ui-workspace", "@deepseek-ai/dsh-client-ui-conversation", "@deepseek-ai/dsh-api-session-controller"], "platform": "web" }
+  }
+}

@@ -1,0 +1,21 @@
+async page => {
+  const status = await page.evaluate(() => __DSH_ACCEPTANCE__.status())
+  if (status.value.state !== 'ready' || status.value.version !== '1.2.0') throw new Error('Upgrade seed must use stable 1.2.0')
+  const root = 'E:\\MyFork\\jarvislukdsh-projectless-session\\dsh-rc5-1.3.0\\output\\runtime-candidate-rc5-upgrade-data\\tasks'
+  await page.getByRole('button',{name:'账号菜单',exact:true}).click()
+  await page.getByRole('menuitem',{name:'设置',exact:true}).click()
+  const field = page.getByRole('textbox',{name:'工作区根目录',exact:true})
+  await field.waitFor({state:'visible'})
+  await page.waitForFunction(element => !element.disabled, await field.elementHandle())
+  await field.fill(root)
+  await page.getByRole('button',{name:'保存',exact:true}).click()
+  await page.getByText('当前生效路径：'+root,{exact:true}).waitFor()
+  await page.getByRole('button',{name:'关闭',exact:true}).click()
+  await page.getByRole('button',{name:'选择工作区',exact:true}).hover()
+  await page.getByRole('button',{name:'切换到无项目',exact:true}).click()
+  await page.waitForFunction(() => __DSH_ACCEPTANCE__.navigation.mainReference?.sessionId.startsWith('projectless-draft-'))
+  await page.locator('[data-composer-input]').fill('rc3 升级前持久历史')
+  await page.locator('[data-composer-input]').press('Enter')
+  await page.getByText('隔离测试模型已收到原生提交。',{exact:true}).waitFor()
+  return page.evaluate(root => {const a=__DSH_ACCEPTANCE__,id=a.navigation.mainReference.sessionId;return {id,root,summary:a.snapshot().sessions.byId[id],body:document.body.innerText}},root)
+}

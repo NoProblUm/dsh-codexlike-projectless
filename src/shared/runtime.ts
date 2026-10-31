@@ -1,6 +1,6 @@
-export const ADAPTER_ID = 'desktop-0.2.1-rc.3-be72761e-runtime-1'
-export const RUNTIME_PACKAGE_VERSION = '1.2.0'
-export const TARGET_BUILD = 'be72761ee1a6736ebcdf4f3739363b083ae53c98'
+export const ADAPTER_ID = 'desktop-0.2.1-rc.5-d4db512a-runtime-1'
+export const RUNTIME_PACKAGE_VERSION = '1.3.0'
+export const TARGET_BUILD = 'd4db512a969fccf0c5cc7ec8fe38e9c1d27af916'
 export type RuntimeState = 'checking' | 'restart-required' | 'ready' | 'unsupported' | 'conflict' | 'failed'
 export interface RuntimeStatus {
   state: RuntimeState
@@ -9,6 +9,10 @@ export interface RuntimeStatus {
   version: string
   build: string
   missingCapabilities: string[]
+}
+
+export function matchesHostRuntime(host: RuntimeStatus): boolean {
+  return host.state === 'ready' && host.adapter === ADAPTER_ID && host.version === RUNTIME_PACKAGE_VERSION && host.build === TARGET_BUILD && host.missingCapabilities.length === 0
 }
 export const RUNTIME_WRAPPER = Symbol.for('dsh-codexlike-projectless.runtime-wrapper')
 let wrapperGeneration = 0

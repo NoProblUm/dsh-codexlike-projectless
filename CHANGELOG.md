@@ -1,5 +1,21 @@
 # Changelog / 变更日志
 
+## 1.3.0 - 2026-10-31
+
+### 简体中文
+
+- 支持 Windows x64 DSH Desktop 0.2.1-rc.5 精确构建 `d4db512a969fccf0c5cc7ec8fe38e9c1d27af916`。rc.3 用户继续使用 1.2.0，rc.2 使用 1.1.0。
+- 重新核验原版七模块，更新 Conversation Client 指纹及 DSH 依赖；保留精确身份、未知包装拒绝和原有草稿/首发/清理语义，不新增思考过滤或公开接口。
+- 候选与正式版通过类型检查、88 项测试及构建。隔离 Desktop 覆盖首发、附件、故障、标题回退、管理器生命周期、从正式 1.2.0 升级、12 组草稿布局、48 组原生 UI 对照和 10 组思考显示对照；正式包安装复核见交付记录。
+- 保留 Git Graph 0.4.6 组合排除、宿主窄屏裁剪及草稿仅运行期保留限制；未测试外部模型或 Windows 宿主安装程序覆盖升级。详见 [验收报告](docs/1.3.0-验收报告.md)。
+
+### English
+
+- Target the exact Windows x64 DSH Desktop rc.5 build `d4db512a969fccf0c5cc7ec8fe38e9c1d27af916`. rc.3 keeps 1.2.0 and rc.2 keeps 1.1.0.
+- Reverify all seven original modules, update the Conversation Client fingerprint and DSH dependencies, and retain existing draft, admission and cleanup behavior. No new reasoning filtering or public interface.
+- Candidate and stable type checks, 88 tests and builds passed. Isolated Desktop validation covers first send, attachments, failures, title fallback, lifecycle, the stable 1.2.0 upgrade, 12 draft layouts, 48 native UI comparisons and 10 reasoning comparisons. The delivery record separately records stable-package installation checks.
+- Git Graph 0.4.6 combinations, native narrow-window clipping and runtime-only drafts remain limitations. External models and Windows host-installer upgrades were not tested.
+
 
 ## 1.2.0 - 2026-10-27
 
