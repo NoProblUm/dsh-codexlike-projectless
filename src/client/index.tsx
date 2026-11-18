@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { RefObject } from 'react'
+import { useEffect, useState } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -102,10 +101,6 @@ function ProjectlessWorkspacePicker({
   const [busy, setBusy] = useState(false)
   const [flowOpen, setFlowOpen] = useState(false)
   const [modalError, setModalError] = useState<string | null>(null)
-  const getAnchorRect = useCallback(
-    () => (anchorRef as RefObject<HTMLElement | null> | undefined)?.current?.getBoundingClientRect() ?? null,
-    [anchorRef],
-  )
 
   const selection = resolvePickerSelection(
     workspaceState.items,
@@ -198,7 +193,7 @@ function ProjectlessWorkspacePicker({
         onClose={onClose}
         side="bottom"
         portal
-        getAnchorRect={getAnchorRect}
+        anchorRef={anchorRef}
       />
       {renderSlot(DIRECTORY_FLOW, directoryFlowOwner)}
       <Modal
@@ -231,6 +226,18 @@ function installStyles(): () => void {
     .dsh-projectless-entry:hover, .dsh-projectless-entry:focus-visible { opacity: 1; pointer-events: auto; }
     [data-projectless-chip]:is(:hover, :focus-visible) > svg,
     :has(> .dsh-projectless-entry:is(:hover, :focus-visible)) > [data-projectless-chip] > svg { visibility: hidden; }
+    /* Keep Tab access at rest. The native row's hover rule takes precedence over display: contents. */
+    :where([data-row-key="workspace:"]) > span:has(> .dsh-projectless-sidebar-new) { display: contents; }
+    [data-row-key="workspace:"] > span:has(> .dsh-projectless-sidebar-new:focus-visible) { display: inline-flex; }
+    .dsh-projectless-sidebar-new { position: absolute; flex: none; display: inline-flex;
+      align-items: center; justify-content: center; opacity: 0; pointer-events: none;
+      width: 24px; height: 24px; margin: -4px; padding: 0; border: 0; border-radius: var(--dsw-radius-xs);
+      background: transparent; color: var(--dsw-alias-label-tertiary); cursor: pointer; }
+    .dsh-projectless-sidebar-new:focus-visible { position: static; opacity: 1; pointer-events: auto; outline-offset: -2px; }
+    @media (hover: hover) {
+      [data-row-key="workspace:"]:hover .dsh-projectless-sidebar-new { position: static; opacity: 1; pointer-events: auto; }
+      .dsh-projectless-sidebar-new:hover { color: var(--dsw-alias-label-primary); }
+    }
     .dsh-projectless-settings { display: grid; gap: 8px; padding: 12px 0; }
     .dsh-projectless-settings-controls { display: flex; gap: 8px; }
     .dsh-projectless-settings input { flex: 1; min-width: 0; padding: 8px; color: inherit;

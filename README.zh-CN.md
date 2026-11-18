@@ -4,35 +4,36 @@
 
 先写消息，首次发送时再创建项目目录。这个插件为 DeepSeek Harness 提供类似 Codex 的无项目会话体验，把会话目录按日期和主题组织起来。
 
-[下载 v1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) · [npm](https://www.npmjs.com/package/dsh-codexlike-projectless) · [变更日志](CHANGELOG.md) · [验收报告](docs/1.3.0-验收报告.md)
+[下载 v1.4.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.4.0) · [npm](https://www.npmjs.com/package/dsh-codexlike-projectless/v/1.4.0) · [变更日志](CHANGELOG.md) · [验证报告](docs/1.4.0-验收报告.md)
 
 ## 兼容版本
 
-**1.3.0 支持 Windows x64 DSH Desktop 0.2.1-rc.5**，仅限原版、dirty=false 的精确构建 `d4db512a969fccf0c5cc7ec8fe38e9c1d27af916`。适配层会核对实际构建号和原版模块指纹。
+**1.4.0 适配 Windows x64 DSH Desktop 0.2.2-rc.3**，仅限原版、`dirty=false` 的精确构建 `6b729fedde0c8fd03af7afdf5a711aa64fe87c3b`。适配层会核对实际构建号和原版模块指纹。
 
 | DSH Desktop | 插件版本 | 说明 |
 | --- | --- | --- |
-| 0.2.1-rc.5 | [1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) | 仅限上述 Windows x64 精确构建 |
+| 0.2.2-rc.3 | [1.4.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.4.0) | 仅限上述 Windows x64 精确构建 |
+| 0.2.1-rc.5 | [1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) | 使用对应发行说明中的已验证构建 |
 | 0.2.1-rc.3 | [1.2.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.2.0) | 使用对应发行说明中的已验证构建 |
 | 0.2.1-rc.2 | [1.1.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.1.0) | 使用对应发行说明中的已验证构建 |
-| rc.4、其他构建或平台 | 未验证 | 不应绕过兼容性检查 |
+| 其他构建或平台 | 未验证 | 不应绕过兼容性检查 |
 
 1.x 已把运行时适配层放进插件包，使用时无需单独安装器、Node.js 或改写 app.asar。曾安装 0.x 归档补丁的用户，需先按原安装记录恢复原版应用，再迁移插件。
 
 ## 安装与更新
 
-1. 下载 [dsh-codexlike-projectless-1.3.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.3.0/dsh-codexlike-projectless-1.3.0.tgz) 和 [SHA256SUMS](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.3.0/SHA256SUMS)。
-2. 核对包的 SHA-256，再通过 DSH 插件市场或官方插件管理器导入。如果市场已显示与宿主匹配的版本，也可以直接安装或更新；市场仍显示旧版本时，使用包导入方式。
+1. 下载 [dsh-codexlike-projectless-1.4.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.4.0/dsh-codexlike-projectless-1.4.0.tgz) 与 [SHA256SUMS](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.4.0/SHA256SUMS)。
+2. 核对包的 SHA-256，再通过 DSH 官方插件管理器导入本地包。
 3. 正常退出并重新打开整个 DSH。热启用可能显示“请正常重启应用”。
 4. 在 **设置 → 通用 → 无项目会话** 中选择工作区根目录并保存，确认运行时状态已就绪。
 
 PowerShell 校验命令：
 
 ```powershell
-Get-FileHash .\dsh-codexlike-projectless-1.3.0.tgz -Algorithm SHA256
+Get-FileHash .\dsh-codexlike-projectless-1.4.0.tgz -Algorithm SHA256
 ```
 
-将结果与 SHA256SUMS 比较。从 rc.3 升级宿主前先备份数据，再由官方管理器更新到匹配的插件并正常重启。未发送草稿不会跨这次重启保存。
+将结果与 `SHA256SUMS` 比较。从 Desktop 0.2.1-rc.5 和插件 1.3.0 升级时，使用备份的配置副本检查会话历史和已保存的根目录。重启前先保存未发送草稿。
 
 停用或卸载通过官方管理器操作，会释放插件的运行时包装，保留已经创建的会话、目录和用户文件。操作前请自行保存未发送正文。旧安装器留下的 `link:` 副本应先通过管理器移除，再导入发布包。
 
@@ -82,22 +83,17 @@ Get-FileHash .\dsh-codexlike-projectless-1.3.0.tgz -Algorithm SHA256
 
 ## 验证与限制
 
-1.3.0 已通过类型检查、**88 项测试**和构建。隔离测试使用官方原版 rc.5 提取副本、独立 profile、官方管理器和无密钥模型 fixture，覆盖首发、附件、标题回退、提交故障与对账、清理、安装/更新/停用/卸载/重装、rc.3 + 正式 1.2.0 升级，以及 **12 组草稿布局、48 组原生 UI 对照、10 组思考显示对照**。正式包还完成安装、正常重启、ready、唯一首发和实际安装字节核对。具体范围见 [验收报告](docs/1.3.0-验收报告.md)。
+1.4.0 适配 DSH 0.2.2-rc.3 的项目选择器、输入框、首发确认和附件上传。“未分组”新建按钮在本行悬停或键盘聚焦时显示。已通过类型检查、**91 项自动化测试**和构建，隔离 Desktop 的验证范围见报告。 [验证报告](docs/1.4.0-验收报告.md)
 
 - 草稿正文、引用、附件和控制项仅在客户端内存中保留，不跨刷新、关闭或重启保存。项目选择和保存的根目录可以持久化。
-- 继续排除 Git Graph 0.4.6 组合。此前在 rc.3 单独测试时丢失过初始化正文，本版没有承诺 rc.5 组合支持；未知导航包装仍会被拒绝。
-- 800 宽、150% 缩放下，宿主 hero 内容仍可能裁剪，插件开关一致。UI 对照限于记录的几何和交互，不表示所有界面均无遮挡。
-- fixture 不证明外部模型的认证、联网、计费或服务质量；未测试 Windows 宿主安装程序覆盖升级、翻译渲染器专项或任意第三方组合。
+- Git Graph 0.4.6、其他第三方插件组合和宿主安装程序覆盖升级不在本候选版的验证范围内。
 - 需要真实 Session 或执行目录的工具、任务和命令，在首次消息创建真实会话之后使用。
 
 ## 开发
 
-需要 Git 和 Node.js 22.19 或更新版本：
+在正式版对应的工作区使用 Node.js 22.19 或更新版本执行以下命令。
 
 ```powershell
-git clone https://github.com/NoProblUm/dsh-codexlike-projectless.git
-cd dsh-codexlike-projectless
-git checkout v1.3.0
 npm ci
 npm run verify
 npm pack --ignore-scripts
@@ -109,6 +105,6 @@ npm pack --ignore-scripts
 
 本项目独立维护，源自 [Jarvis Luk 的 dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session)。感谢 [Jarvis Luk](https://github.com/jarvisluk) 提供最初的无项目会话实现和 MIT 许可源码基础。
 
-[LICENSE](LICENSE) 保留原版权和 MIT 许可，[NOTICE](NOTICE) 记录源码来源。固定版本的 Git Graph 适配路由包含 Apache-2.0 代码，来源、修改和许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)；保留这段代码不代表 rc.5 上支持该插件组合。
+[LICENSE](LICENSE) 保留原版权和 MIT 许可，[NOTICE](NOTICE) 记录源码来源。固定版本的 Git Graph 适配路由包含 Apache-2.0 代码，来源、修改和许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 由 NoProblUm 独立维护，非 DeepSeek 或 OpenAI 官方项目。仓库名和 npm 包名均为 `dsh-codexlike-projectless`。

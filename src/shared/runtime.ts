@@ -1,6 +1,7 @@
-export const ADAPTER_ID = 'desktop-0.2.1-rc.5-d4db512a-runtime-1'
-export const RUNTIME_PACKAGE_VERSION = '1.3.0'
-export const TARGET_BUILD = 'd4db512a969fccf0c5cc7ec8fe38e9c1d27af916'
+export const ADAPTER_ID = 'desktop-0.2.2-rc.3-6b729fed-runtime-1'
+export const RUNTIME_PACKAGE_VERSION = '1.4.0'
+export const TARGET_DSH_VERSION = '0.2.2-rc.3'
+export const TARGET_BUILD = '6b729fedde0c8fd03af7afdf5a711aa64fe87c3b'
 export type RuntimeState = 'checking' | 'restart-required' | 'ready' | 'unsupported' | 'conflict' | 'failed'
 export interface RuntimeStatus {
   state: RuntimeState

@@ -3,7 +3,7 @@
 Requirements:
 
 - Node.js 22.19 or newer
-- Windows with DeepSeek Harness Desktop 0.2.1-rc.3 (build be72761ee1a6736ebcdf4f3739363b083ae53c98) for native integration checks
+- Windows x64 with DeepSeek Harness Desktop 0.2.2-rc.3 (build `6b729fedde0c8fd03af7afdf5a711aa64fe87c3b`) for native integration checks
 
 Install and verify:
 
@@ -15,7 +15,7 @@ npm run verify
 Keep the generated `lib/` artifacts in sync with `src/`. Before opening a pull
 request, run `npm run verify` and commit any resulting `lib/` changes.
 
-For UI changes, verify these transitions in an isolated DSH Web profile:
+For UI changes, verify these transitions in an isolated DSH Desktop profile:
 
 1. The Workspace menu contains “无项目” and the project-clear action appears on hover/focus.
 2. The client-local draft remains writable before its first prompt, without a Host Session.
@@ -42,6 +42,7 @@ establish live acceptance. See docs/运行时适配与验收.md.
 
 Follow the installation instructions in README.md. Do not
 commit DSH archives, profiles, model logs, installation backups or local test data.
+Keep README release updates and release notes focused on the changes in that version.
 The GitHub tag must match `package.json`. After verification, `release.yml` publishes
 the same prebuilt package to GitHub Releases and npm using trusted publishing
 (OIDC, no npm token). Stable versions use `latest`; prereleases use `next`.

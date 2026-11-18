@@ -101,7 +101,7 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
     const draft: Draft = { model: catalog.default, permission: permissions.defaultPreset,
       ...preset === undefined ? {} : { preset }, plan: false, busy: false, uncertain: false, lastUsed: 0 }
     const id = sessions.createProjectlessDraft({ modelSelection: { next: draft.model }, permissions: { currentValue: draft.permission },
-      agentPreset: preset, plan: { active: false }, inbox: { 'next-turn': [] } })
+      agentPreset: preset, plan: { active: false }, inbox: { 'next-turn': [], 'next-step': [] } })
     drafts.set(id, draft)
     projectlessSessions.add(id)
     rememberBlank(id)
@@ -266,8 +266,9 @@ export function installProjectlessDrafts(ctx: Context, host: ProjectlessSessionH
             let outcome
             try { outcome = await conversation.sendSession(binding.session, input.text, input.attachments, input.mode, input.signal) }
             catch (error) {
-              if (!adapter.admission(id)?.requestId) { onError(error); return 'rejected' }
-              throw error
+              const acceptance = classifyNativeAdmission(adapter.admission(id), { kind: 'error' })
+              if (acceptance !== 'accepted') onError(error)
+              return acceptance
             }
             const admission = adapter.admission(id)
             return classifyNativeAdmission(admission, outcome)

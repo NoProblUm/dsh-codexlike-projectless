@@ -1,10 +1,11 @@
 import { createPortal } from 'react-dom'
-import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import { createElement, Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { IconCloseOutlineRegular, IconNewChatOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { createElement, Fragment, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, RUNTIME_WRAPPER, originalInstance, wrapRuntimeMethod, matchesHostRuntime, type RuntimeStatus } from '../shared/runtime.ts'
 import { decodeSelection, SELECTION_KEY } from './selection.ts'
-import { matchesNativeSubmission, type NativeAdmission } from './admission.ts'
+import { matchesNativeSubmission, trackNativeSubmission, type NativeAdmission } from './admission.ts'
+import { uploadDeferredAttachments } from './attachments.ts'
 import { installSessionDispatch, gitGraphTransport } from './session-dispatch.ts'
 
 interface ClientRuntime {
@@ -19,7 +20,7 @@ interface ClientRuntime {
 const installations = new WeakMap<object, ClientRuntime>()
 let activationGeneration = 0
 
-/** All access to rc.2 implementation fields is confined to this adapter. */
+/** Wrap the verified Desktop's internal client services. */
 export function activateClientRuntime(ctx: Context): ClientRuntime {
   const key = originalInstance(ctx.sessions)
   const existing = installations.get(key)
@@ -27,12 +28,16 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
   const generation = ++activationGeneration
   const status: RuntimeStatus = { state: 'checking', reason: '正在检查运行时兼容性', adapter: ADAPTER_ID, version: RUNTIME_PACKAGE_VERSION, build: TARGET_BUILD, missingCapabilities: [] }
   const listeners = new Set<() => void>()
+  const subscribeStatus = (listener: () => void) => {
+    listeners.add(listener)
+    return () => { listeners.delete(listener) }
+  }
   const disposers: (() => void)[] = []
   const ownership: (() => boolean)[] = []
   const drafts = new Map<string, { summary: any, values: Record<string, unknown> }>()
   const retiredIds = new Set<string>()
   const localFiles = new Map<string, string>()
-  const submissions = new Map<string, { requestId?: string, accepted: boolean, observed: boolean, errorCode?: string }>()
+  const submissions = new Map<string, NativeAdmission>()
   let active = true
   let business = false
   let restored = false
@@ -145,20 +150,16 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       // Associate admission and its durable retirement with this operation only.
       wrapSession('beginSubmission', (begin, owner, values) => {
         const operation = submissions.get(owner.sessionId)
-        if (!operation) return begin.apply(owner, values)
-        const request = values[0]
-        const submission = begin.call(owner, { ...request, onRetire: (settlement: any) => {
-          if (settlement.reason === 'observed') operation.observed = true
-          request.onRetire?.(settlement)
-        } })
-        operation.requestId = submission.requestId
-        return submission
+        if (!operation || operation.requestId !== undefined) return begin.apply(owner, values)
+        return trackNativeSubmission(operation, input => begin.call(owner, input), values[0])
       })
       wrapSession('prompt', async (prompt, owner, values) => {
         const operation = submissions.get(owner.sessionId)
+        if (operation?.requestId === undefined || operation.requestId !== values[3]) return prompt.apply(owner, values)
+        operation.dispatched = true
         const result = await prompt.apply(owner, values)
-        if (operation && operation.requestId === values[3] && result.ok) operation.accepted = true
-        if (operation && operation.requestId === values[3] && !result.ok) operation.errorCode = result.error.code
+        if (result.ok) operation.accepted = true
+        else operation.errorCode = result.error.code
         return result
       })
       const observeMessages = (owner: any, messages: any[]) => {
@@ -234,10 +235,12 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       return original.apply(receiver, args)
     })
     wrap(conversation.input, 'sink', (original, receiver, args) => {
-      if (!isLocal(args[0].sessionId)) return original.apply(receiver, args)
-      if (args[1] === '' && args[2].length === 0) return Promise.resolve({ kind: 'success' })
+      const [session, text, attachments, mode, signal] = args
+      if (!isLocal(session.sessionId)) return original.apply(receiver, args)
+      if (text === '' && attachments.length === 0) return Promise.resolve({ kind: 'success' })
       requireActive()
-      return ctx.bail('projectless/first-send', ...args as [any, string, any, any, AbortSignal]) ?? Promise.resolve({ kind: 'error', text: '首次发送服务尚未就绪' })
+      // Settle the local editor after the first-send transaction finishes.
+      return ctx.bail('projectless/first-send', session, text, attachments, mode, signal) ?? Promise.resolve({ kind: 'error', text: '首次发送服务尚未就绪' })
     })
     wrap(conversation, 'beginFileUpload', (original, receiver, args) => {
       if (!isLocal(args[0])) return original.apply(receiver, args)
@@ -251,24 +254,19 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       localFiles.delete(args[0])
       return original.apply(receiver, args)
     })
+    wrap(conversation, 'rebindDraftFiles', (original, receiver, args) => {
+      const result = original.apply(receiver, args)
+      if (!isLocal(args[0])) for (const id of args[1]) localFiles.delete(id)
+      return result
+    })
     wrap(conversation, 'sendSession', async (original, receiver, args) => {
       const [session, , attachmentIds, , signal] = args
       if (isLocal(session.sessionId)) throw new Error('Local draft cannot be sent directly')
-      const pending = []
-      for (const id of attachmentIds) if (localFiles.has(id)) {
-        const attachment = receiver.draftAttachments.get(id)
-        if (attachment?.kind === 'file') {
-          requireActive()
-          signal?.throwIfAborted()
-          receiver.beginFileUpload(session.sessionId, attachment)
-          const operation = receiver.fileUploadOperations.get(id)
-          const abort = () => operation.controller.abort()
-          signal?.addEventListener('abort', abort, { once: true })
-          pending.push(operation.done.finally(() => signal?.removeEventListener('abort', abort)))
-        }
+      if (attachmentIds.some((id: string) => localFiles.has(id))) {
+        requireActive()
+        await uploadDeferredAttachments(receiver, session.sessionId, attachmentIds, localFiles, signal)
+        requireActive()
       }
-      await Promise.all(pending)
-      if (pending.length) requireActive()
       signal?.throwIfAborted()
       return original.apply(receiver, args)
     })
@@ -298,16 +296,36 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
     if (!sidebar || core.entries('sidebar.workspaces').length !== 1) throw new Error('原生侧栏组件边界不匹配')
     const OriginalSidebar = sidebar.component
     function AdaptedSidebar(props: any) {
-      return createElement('div', { style: { display: 'contents' }, onClickCapture: (event: any) => {
-        if (!active || !business) return
-        const button = event.target.closest?.('button[type="button"]')
-        const row = button?.closest('[data-row-key="workspace:"]')
-        if (!row || !event.currentTarget.contains(row) || button.getAttribute('aria-label') !== props.t('actions.newSession.aria', { name: props.t('group.ungrouped') })) return
-        requireActive()
-        event.preventDefault()
-        event.stopPropagation()
-        void ctx.bail('projectless/restore-draft')
-      } }, createElement(OriginalSidebar, props))
+      const root = useRef<HTMLDivElement>(null)
+      const [actions, setActions] = useState<HTMLElement | null>(null)
+      const ready = useSyncExternalStore(subscribeStatus, () => status.state === 'ready')
+      useLayoutEffect(() => {
+        const container = root.current
+        if (!container || !ready) return
+        // rc.3 retains the ungrouped row's action strip but renders it empty.
+        const refresh = () => setActions(container.querySelector<HTMLSpanElement>('[data-row-key="workspace:"] > span[class$="_rowActions"]'))
+        refresh()
+        const observer = new MutationObserver(refresh)
+        observer.observe(container, { childList: true, subtree: true })
+        return () => observer.disconnect()
+      }, [ready])
+      const label = props.t('actions.newSession.aria', { name: props.t('group.ungrouped') })
+      return (
+        <div ref={root} style={{ display: 'contents' }}>
+          <OriginalSidebar {...props} />
+          {ready && actions && createPortal(
+            <button type="button" className="dsh-projectless-sidebar-new" aria-label={label} title={label}
+              onClick={event => {
+                event.stopPropagation()
+                requireActive()
+                void ctx.bail('projectless/restore-draft')
+              }}>
+              <IconNewChatOutlineRegular size={14} />
+            </button>,
+            actions,
+          )}
+        </div>
+      )
     }
     sidebar.component = AdaptedSidebar
     core.markDirty('sidebar.workspaces', core.record('sidebar.workspaces'))
@@ -381,7 +399,7 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
   ctx.effect(() => dispose)
   const runtime: ClientRuntime = {
     getStatus: () => ({ ...status, missingCapabilities: [...status.missingCapabilities] }),
-    subscribeStatus(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
+    subscribeStatus,
     confirm(host: RuntimeStatus) {
       if (!active || status.state === 'restart-required') return false
       if (!matchesHostRuntime(host)) {
@@ -393,7 +411,7 @@ export function activateClientRuntime(ctx: Context): ClientRuntime {
       return true
     },
     admission(sessionId: string) { return submissions.get(sessionId) },
-    beginFirstSend(sessionId: string) { submissions.set(sessionId, { accepted: false, observed: false }) },
+    beginFirstSend(sessionId: string) { submissions.set(sessionId, { dispatched: false, accepted: false, observed: false }) },
     fail(reason: string) { business = false; updateStatus('failed', reason) },
     dispose,
   }

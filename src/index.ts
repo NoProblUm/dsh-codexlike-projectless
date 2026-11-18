@@ -98,7 +98,7 @@ export async function dispatchProjectlessEndpoint(
       return { ok: true, value: { root: await runtime.settings.save(candidate) } }
     }
     if (endpoint === 'prepare-title' || endpoint === 'bind-title') {
-      if (runtime.nativeTitle === undefined) return internalError('Install the DSH 0.2.0-rc.2 native projectless bridge before using this build')
+      if (runtime.nativeTitle === undefined) return internalError('The projectless runtime adapter is not ready')
       const input = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}
       if (typeof input.sessionId !== 'string' || !/^[a-zA-Z0-9-]{1,100}$/.test(input.sessionId)) return badRequest('Invalid final Session identity')
       if (endpoint === 'bind-title') {

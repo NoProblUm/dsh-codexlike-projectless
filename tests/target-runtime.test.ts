@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { assertTargetManifest, assertTargetModule } from '../src/host/runtime.ts'
-import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, matchesHostRuntime, type RuntimeStatus } from '../src/shared/runtime.ts'
+import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, TARGET_DSH_VERSION, matchesHostRuntime, type RuntimeStatus } from '../src/shared/runtime.ts'
 
-test('only the verified clean rc.5 manifest passes the target gate', () => {
-  const manifest = { version: '0.2.1-rc.5', dshBuildCommit: TARGET_BUILD, dshBuildDirty: false }
+test('only the verified clean 0.2.2-rc.3 manifest passes the target gate', () => {
+  const manifest = { version: '0.2.2-rc.3', dshBuildCommit: '6b729fedde0c8fd03af7afdf5a711aa64fe87c3b', dshBuildDirty: false }
+  assert.equal(TARGET_DSH_VERSION, manifest.version)
+  assert.equal(TARGET_BUILD, manifest.dshBuildCommit)
   assert.doesNotThrow(() => assertTargetManifest(manifest))
-  for (const change of [{ version: '0.2.1-rc.3' }, { dshBuildCommit: 'b830ec950faba0a46dda564be3e2d854afed94f1' }, { dshBuildCommit: undefined }, { dshBuildDirty: true }, { dshBuildDirty: undefined }]) {
+  for (const change of [{ version: '0.2.1-rc.5' }, { version: '0.2.2-rc.4' }, { dshBuildCommit: 'b830ec950faba0a46dda564be3e2d854afed94f1' }, { dshBuildCommit: undefined }, { dshBuildDirty: true }, { dshBuildDirty: undefined }]) {
     assert.throws(() => assertTargetManifest({ ...manifest, ...change }), /宿主构建不在支持范围内/)
   }
 })

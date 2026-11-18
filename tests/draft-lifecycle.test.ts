@@ -23,13 +23,15 @@ test('global new inherits current project; projectless stays local and explicit 
   let next = 0
   const initializations = new Map<string, unknown[]>()
   const presets = new Map<string, unknown>()
+  const inboxes = new Map<string, unknown>()
   const snapshot = () => ({ phase: 'ready', ids: Object.keys(rows), byId: rows })
   const publish = () => { for (const listener of listeners) listener() }
   const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
   const sessions = {
     list: { getSnapshot: snapshot, subscribe },
-    createProjectlessDraft(values: { agentPreset?: string }) {
+    createProjectlessDraft(values: { agentPreset?: string, inbox?: unknown }) {
       const id = `projectless-draft-${++next}`
+      inboxes.set(id, values.inbox)
       rows[id] = { blank: true, retainedBy: {}, projectionValues: values.agentPreset === undefined ? {} : { agentPreset: values.agentPreset } }
       return id
     },
@@ -74,6 +76,7 @@ test('global new inherits current project; projectless stays local and explicit 
     })
     await flush()
     assert.match(current, /^projectless-draft-/)
+    assert.deepEqual(inboxes.get(current), { 'next-turn': [], 'next-step': [] })
     assert.deepEqual(JSON.parse(storage.get(SELECTION_KEY)!), { kind: 'projectless' })
     const first = current
     assert.equal(await drafts.start(), first, 'repeat no project restores the same editor')

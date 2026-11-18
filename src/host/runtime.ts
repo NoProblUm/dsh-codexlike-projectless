@@ -3,12 +3,12 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { NativeTitleBridge, PreparedTitle } from '../shared/native.ts'
-import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, originalInstance, wrapRuntimeMethod, type RuntimeStatus } from '../shared/runtime.ts'
+import { ADAPTER_ID, RUNTIME_PACKAGE_VERSION, TARGET_BUILD, TARGET_DSH_VERSION, originalInstance, wrapRuntimeMethod, type RuntimeStatus } from '../shared/runtime.ts'
 
 const installations = new WeakMap<object, { status: RuntimeStatus, title: NativeTitleBridge }>()
 
 export function assertTargetManifest(manifest: { version?: string | undefined, dshBuildCommit?: string | undefined, dshBuildDirty?: boolean | undefined }) {
-  if (manifest.version !== '0.2.1-rc.5' || manifest.dshBuildCommit !== TARGET_BUILD || manifest.dshBuildDirty !== false) throw new Error('宿主构建不在支持范围内')
+  if (manifest.version !== TARGET_DSH_VERSION || manifest.dshBuildCommit !== TARGET_BUILD || manifest.dshBuildDirty !== false) throw new Error('宿主构建不在支持范围内')
 }
 
 export function assertTargetModule(path: string, read: () => Buffer) {
@@ -24,7 +24,7 @@ export function activateHostRuntime(ctx: Context): { status: RuntimeStatus, titl
   let active = true
   try {
     const archive = process.argv.map(arg => /^(.*?\.asar)(?:[/\\]|$)/i.exec(arg)?.[1]).find(Boolean)
-    if (process.platform !== 'win32' || !archive) throw new Error('仅支持已验证的 Windows Desktop 0.2.1-rc.5 构建')
+    if (process.platform !== 'win32' || !archive) throw new Error(`仅支持已验证的 Windows Desktop ${TARGET_DSH_VERSION} 构建`)
     const manifest = JSON.parse(readFileSync(join(archive, 'package.json'), 'utf8'))
     status.build = manifest.dshBuildCommit ?? 'unknown'
     assertTargetManifest(manifest)
@@ -40,9 +40,9 @@ export function activateHostRuntime(ctx: Context): { status: RuntimeStatus, titl
     disposers.push(wrapRuntimeMethod(service, 'onUserMessage', (original, receiver, args) => {
       const [session, event] = args
       const item = bound.get(session.id)
-      if (!item) return original.apply(receiver, args)
+      if (!item || event.data.source.kind !== 'user') return original.apply(receiver, args)
       bound.delete(session.id)
-      Promise.resolve().then(() => {
+      return Promise.resolve().then(() => {
         if (!active || !receiver.serviceActive() || receiver.ctx.sessions.get(session.id) !== session) return
         for (const [type, data] of item.events) session.append(type, { ...data, messageSeqs: [event.seq] })
         session.append('session/title', { title: item.title, messageSeqs: [event.seq], source: item.source })
@@ -102,14 +102,14 @@ export function activateHostRuntime(ctx: Context): { status: RuntimeStatus, titl
   }
 }
 
-// Byte fingerprints of the original modules in the verified rc.5 archive.
-// Generated from original SHA-256 e1b6f25fa937da98086c3e77af77aa14791105963c4d337a1c42179d232c6915.
+// Module fingerprints from the verified 0.2.2-rc.3 Desktop archive.
+// Archive SHA-256: 14cfd81c9135bf0afb89417543c94f9ecfe09266574452a9b106890c698725ae.
 const TARGET_MODULES: Record<string, string> = {
-  'dsh-client-file-upload/lib/client.js': '4c09378ab7cb3dbe58253bd1fad8c4a00ebf5a93b462d96623edb7bd4e566305',
-  'dsh-api-gateway/lib/client.browser.js': '3043de82334846a3a5654b7317830c5403f90e9aeca692d3c15e30e01d16505d',
-  'dsh-api-session-controller/lib/client.js': '82f2301c18f0e51340c1eedf8ecdfb939e873b3770a80632e438b86e82887d0e',
-  'dsh-api-gateway/lib/index.js': '4fbe460fec585ebc2cf2887261f6c33f024081a539d9fb5d6557a9002324b23f',
-  'dsh-client-ui-conversation/lib/client.js': 'fd8ee6c74845d017c2d0e2e6fb62fc655c42b084b1b014da08e1ef7355e3e984',
-  'dsh-client-ui-workspace/lib/client.js': 'bafd2d6eea2f82674cc0606bec13fc891e44b42fb2ac973f01cb32c735d4062f',
-  'dsh-session-title/lib/index.js': 'eb814490ca3d0aaabf8f6ddc705a031f99a98709c484c1502c5f28f101cf0eeb',
+  'dsh-client-file-upload/lib/client.js': '57e8b8c03c98f1a59b03a0a7b9c8fd0b70d48724961dd68a4aef49c4bf860b96',
+  'dsh-api-gateway/lib/client.browser.js': '3b505de5bca1cd96de580895ce752384e572eb4ffefbe1684f0c65b1c6ade7c8',
+  'dsh-api-session-controller/lib/client.js': 'e9af25a01168a8405730c107471cbd6befccfab3294e793b10e1467c57255852',
+  'dsh-api-gateway/lib/index.js': '91abae7edfaa2bf3154680829e77b1f341aa01ba9094795aa70b96ff3e15f52b',
+  'dsh-client-ui-conversation/lib/client.js': '2c3c39fddb37df9ee1168c279259aebb7cf484651a7e978ce9baaaf24d142a60',
+  'dsh-client-ui-workspace/lib/client.js': '9695de66609c6fbe0857da1d1b4b7456a543b962bf1c19ab210ec5ef688cf9c7',
+  'dsh-session-title/lib/index.js': '30fce2347da124b1d37e5fe4d1c423cd9ace06daf31f2329ca91e1a6201b0b73',
 }

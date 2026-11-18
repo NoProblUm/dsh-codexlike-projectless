@@ -4,35 +4,36 @@
 
 Write first, choose a project later. This plugin adds Codex-like no-project conversations to DeepSeek Harness: compose a local draft, then create a working directory organized by date and topic on the first send.
 
-[Download v1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) · [npm](https://www.npmjs.com/package/dsh-codexlike-projectless) · [Changelog](CHANGELOG.md) · [Acceptance report](docs/1.3.0-验收报告.md)
+[Download v1.4.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.4.0) · [npm](https://www.npmjs.com/package/dsh-codexlike-projectless/v/1.4.0) · [Changelog](CHANGELOG.md) · [Validation report](docs/1.4.0-验收报告.md)
 
 ## Compatibility
 
-**1.3.0 targets Windows x64 DSH Desktop 0.2.1-rc.5**, exact clean build `d4db512a969fccf0c5cc7ec8fe38e9c1d27af916`. The adapter checks the host build and original module fingerprints at runtime.
+**1.4.0 targets Windows x64 DSH Desktop 0.2.2-rc.3**, exact clean build `6b729fedde0c8fd03af7afdf5a711aa64fe87c3b`. The adapter checks the host build and module fingerprints at runtime.
 
 | DSH Desktop | Plugin version | Notes |
 | --- | --- | --- |
-| 0.2.1-rc.5 | [1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) | Exact Windows x64 build above |
+| 0.2.2-rc.3 | [1.4.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.4.0) | Exact Windows x64 build above |
+| 0.2.1-rc.5 | [1.3.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.3.0) | Use that release's verified build |
 | 0.2.1-rc.3 | [1.2.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.2.0) | Use that release's verified build |
 | 0.2.1-rc.2 | [1.1.0](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/tag/v1.1.0) | Use that release's verified build |
-| rc.4, other builds or platforms | Not validated | Do not bypass the compatibility check |
+| Other builds or platforms | Not validated | Do not bypass the compatibility check |
 
 The 1.x adapter is included in the plugin package. There is no separate installer, Node.js requirement for users, or app.asar modification. If you installed a patched 0.x version, restore the original application using its installation record before migrating.
 
 ## Install or update
 
-1. Download [dsh-codexlike-projectless-1.3.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.3.0/dsh-codexlike-projectless-1.3.0.tgz) and [SHA256SUMS](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.3.0/SHA256SUMS).
-2. Verify the archive's SHA-256, then import it through DSH's plugin market or official plugin manager. If the market already lists the matching version, you can install or update there instead; if it still shows an older version, import the archive.
+1. Download [dsh-codexlike-projectless-1.4.0.tgz](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.4.0/dsh-codexlike-projectless-1.4.0.tgz) and [SHA256SUMS](https://github.com/NoProblUm/dsh-codexlike-projectless/releases/download/v1.4.0/SHA256SUMS).
+2. Verify the archive's SHA-256, then import the local package through DSH's official plugin manager.
 3. Quit and reopen the entire DSH application normally. A hot enable may show a restart-required status.
 4. Under **Settings → General → No-project conversations**, choose a workspace root and save it. Check that the runtime status is ready.
 
 To check the download in PowerShell:
 
 ```powershell
-Get-FileHash .\dsh-codexlike-projectless-1.3.0.tgz -Algorithm SHA256
+Get-FileHash .\dsh-codexlike-projectless-1.4.0.tgz -Algorithm SHA256
 ```
 
-Match the hash with SHA256SUMS. When updating from rc.3, keep a backup before switching hosts, update to the matching plugin through the official manager, and restart. Unsent drafts do not survive that restart.
+Match the hash with `SHA256SUMS`. For an upgrade from Desktop 0.2.1-rc.5 with plugin 1.3.0, use a backup copy of the profile to check that history and the saved root are preserved. Save unsent drafts before restarting.
 
 Disable or uninstall through the official manager. This releases the plugin's runtime wrappers while preserving created conversations, directories and user files. Save unsent draft content before disabling or removing it. An old `link:` installation should be removed through the manager before importing the package.
 
@@ -82,22 +83,17 @@ General Settings lets you browse, save and inspect the effective workspace root.
 
 ## Validation and limits
 
-Version 1.3.0 passed type checking, **88 tests** and builds. Isolated tests used an unmodified official rc.5 Desktop, separate profiles, the official plugin manager and a keyless model fixture. Coverage includes first send, attachments, title fallback, submission failures and reconciliation, cleanup, install/update/disable/remove/reinstall, the rc.3 + stable 1.2.0 upgrade, **12 draft layouts**, **48 native UI comparisons** and **10 reasoning-display comparisons**. The stable package also passed installation, normal restart, ready-state, one-submit first-send and installed-byte checks. See the [acceptance report](docs/1.3.0-验收报告.md) for the exact boundaries.
+Version 1.4.0 adapts the workspace picker, composer, first-send confirmation and attachment uploads for DSH 0.2.2-rc.3. The Ungrouped sidebar action appears on row hover or keyboard focus. The build, type checking and **91 automated tests** passed. See the report for the scope of the isolated Desktop tests. [Validation report](docs/1.4.0-验收报告.md)
 
 - Draft text, references, attachments and editor controls live in client memory and do not survive refresh, closing or restart. The selected project and saved root persist.
-- Git Graph 0.4.6 combinations remain unsupported. Earlier standalone rc.3 testing lost initialization text; this release does not claim rc.5 combination support. Unknown navigation wrappers are rejected.
-- At 800 width and 150% zoom, native hero content can clip with or without the plugin. UI comparisons cover the recorded geometry and interactions, not every possible display issue.
-- The fixture does not validate external model authentication, connectivity, billing or quality. Windows host-installer overwrite upgrades, translation renderers and arbitrary third-party combinations were not tested.
+- Git Graph 0.4.6, other third-party combinations and host-installer overwrite upgrades are outside this candidate's validation scope.
 - Tools, tasks and commands requiring a real Session or execution directory become available after the first message creates the Session.
 
 ## Development
 
-Git and Node.js 22.19 or newer are required:
+From the release checkout, run these commands with Node.js 22.19 or newer.
 
 ```powershell
-git clone https://github.com/NoProblUm/dsh-codexlike-projectless.git
-cd dsh-codexlike-projectless
-git checkout v1.3.0
 npm ci
 npm run verify
 npm pack --ignore-scripts
@@ -109,6 +105,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development and historical validation
 
 This independently maintained project is based on [Jarvis Luk's dsh-projectless-session](https://github.com/jarvisluk/dsh-projectless-session). Thanks to [Jarvis Luk](https://github.com/jarvisluk) for the original projectless conversation work and MIT-licensed source foundation.
 
-The original copyright and MIT license are retained in [LICENSE](LICENSE), with source attribution in [NOTICE](NOTICE). The pinned Git Graph compatibility route includes Apache-2.0 code; its attribution, modifications and license are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Retaining that code does not imply supported Git Graph combinations on rc.5.
+The original copyright and MIT license are retained in [LICENSE](LICENSE), with source attribution in [NOTICE](NOTICE). The pinned Git Graph compatibility route includes Apache-2.0 code; its attribution, modifications and license are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Maintained independently by NoProblUm. This is not an official DeepSeek or OpenAI project. The repository and package name are both `dsh-codexlike-projectless`.

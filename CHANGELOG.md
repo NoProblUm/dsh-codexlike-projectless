@@ -1,5 +1,19 @@
 # Changelog / 变更日志
 
+## 1.4.0 - 2026-11-18
+
+### 简体中文
+
+- 适配 Windows x64 DSH Desktop 0.2.2-rc.3 精确构建 `6b729fedde0c8fd03af7afdf5a711aa64fe87c3b`，更新宿主依赖和模块指纹。
+- 适配新版项目菜单定位、原生首发确认和附件上传。需要预上传的文件和图片在真实会话创建后交由宿主上传。
+- 恢复无项目草稿的原生输入框，以及“未分组”行的新建会话按钮。按钮随本行悬停显示，键盘聚焦时也可用。
+
+### English
+
+- Support the exact Windows x64 DSH Desktop 0.2.2-rc.3 build `6b729fedde0c8fd03af7afdf5a711aa64fe87c3b` with updated host dependencies and fingerprints.
+- Adapt workspace menu anchoring, native first-send confirmation and attachment uploads. The host uploads staged files and images after the real Session is created.
+- Restore the native composer for projectless drafts and the Ungrouped New Conversation action. The button appears on row hover or keyboard focus.
+
 ## 1.3.0 - 2026-10-31
 
 ### 简体中文
